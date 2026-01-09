@@ -4,8 +4,7 @@ Custom Evaluators for E-Commerce Customer Service Agent
 These evaluators assess agent responses for domain-specific quality metrics.
 """
 
-from strands_agents_evals import OutputEvaluator
-from strands_agents_evals.evaluator.output_evaluator import OutputEvaluatorConfig
+from strands_evals.evaluators import OutputEvaluator
 from typing import Optional
 
 
@@ -15,11 +14,8 @@ class RoutingAccuracyEvaluator(OutputEvaluator):
     to the appropriate specialized agent.
     """
 
-    def __init__(self, model_id: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"):
-        config = OutputEvaluatorConfig(
-            name="routing_accuracy",
-            description="Evaluates if the request was routed to the correct specialized agent",
-            rubric="""You are evaluating whether a customer service request was routed to the correct specialized agent.
+    def __init__(self):
+        rubric = """You are evaluating whether a customer service request was routed to the correct specialized agent.
 
 The available agents are:
 1. Order Agent - handles order status, tracking, returns, cancellations, modifications
@@ -39,10 +35,8 @@ Consider:
 - Whether the tools used were appropriate
 - If multiple agents were needed, were the right ones consulted?
 
-Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string).""",
-            model_id=model_id
-        )
-        super().__init__(config)
+Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string)."""
+        super().__init__(rubric=rubric)
 
 
 class PolicyComplianceEvaluator(OutputEvaluator):
@@ -50,11 +44,8 @@ class PolicyComplianceEvaluator(OutputEvaluator):
     Evaluates whether the agent's response complies with company policies.
     """
 
-    def __init__(self, model_id: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"):
-        config = OutputEvaluatorConfig(
-            name="policy_compliance",
-            description="Evaluates if the response follows company policies",
-            rubric="""You are evaluating whether a customer service response complies with company policies.
+    def __init__(self):
+        rubric = """You are evaluating whether a customer service response complies with company policies.
 
 Key policies to check:
 1. Return Policy: 30-day return window from delivery, items must be in original condition
@@ -77,10 +68,8 @@ Consider:
 - Was sensitive information protected?
 - Were order modification limits correctly enforced?
 
-Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string).""",
-            model_id=model_id
-        )
-        super().__init__(config)
+Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string)."""
+        super().__init__(rubric=rubric)
 
 
 class ResponseQualityEvaluator(OutputEvaluator):
@@ -88,11 +77,8 @@ class ResponseQualityEvaluator(OutputEvaluator):
     Evaluates the overall quality of the customer service response.
     """
 
-    def __init__(self, model_id: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"):
-        config = OutputEvaluatorConfig(
-            name="response_quality",
-            description="Evaluates the overall quality, helpfulness, and professionalism of the response",
-            rubric="""You are evaluating the quality of a customer service response.
+    def __init__(self):
+        rubric = """You are evaluating the quality of a customer service response.
 
 Evaluate on these criteria:
 1. Helpfulness: Did the response actually help the customer with their request?
@@ -110,10 +96,8 @@ Score the response quality on this scale:
 - 0.2: Very poor - unhelpful or mostly incorrect
 - 0.0: Unacceptable - completely unhelpful, incorrect, or inappropriate
 
-Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string).""",
-            model_id=model_id
-        )
-        super().__init__(config)
+Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string)."""
+        super().__init__(rubric=rubric)
 
 
 class CustomerSatisfactionEvaluator(OutputEvaluator):
@@ -121,11 +105,8 @@ class CustomerSatisfactionEvaluator(OutputEvaluator):
     Predicts likely customer satisfaction based on the interaction.
     """
 
-    def __init__(self, model_id: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"):
-        config = OutputEvaluatorConfig(
-            name="customer_satisfaction",
-            description="Predicts customer satisfaction based on the interaction quality",
-            rubric="""You are predicting how satisfied a customer would be with this customer service interaction.
+    def __init__(self):
+        rubric = """You are predicting how satisfied a customer would be with this customer service interaction.
 
 Consider:
 1. Was their primary issue resolved?
@@ -142,17 +123,15 @@ Predict satisfaction score (simulating CSAT):
 - 0.25: Dissatisfied - issue not well handled, poor experience
 - 0.0: Very Dissatisfied - issue unresolved, frustrating experience
 
-Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string).""",
-            model_id=model_id
-        )
-        super().__init__(config)
+Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (string)."""
+        super().__init__(rubric=rubric)
 
 
-def get_all_custom_evaluators(model_id: str = "anthropic.claude-3-haiku-20240307-v1:0"):
+def get_all_custom_evaluators():
     """Get all custom evaluators for the e-commerce domain"""
     return [
-        RoutingAccuracyEvaluator(model_id),
-        PolicyComplianceEvaluator(model_id),
-        ResponseQualityEvaluator(model_id),
-        CustomerSatisfactionEvaluator(model_id)
+        RoutingAccuracyEvaluator(),
+        PolicyComplianceEvaluator(),
+        ResponseQualityEvaluator(),
+        CustomerSatisfactionEvaluator()
     ]
