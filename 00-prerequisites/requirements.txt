@@ -1,0 +1,29 @@
+# Strands Agent SDK
+strands-agents>=0.1.0
+strands-agents-tools>=0.2.0
+
+# Strands Evaluation
+strands-agents-evals>=0.1.0
+
+# AWS SDK and AgentCore
+boto3>=1.35.0
+bedrock-agentcore>=0.1.0
+bedrock-agentcore-starter-toolkit>=0.1.0
+aws-opentelemetry-distro>=0.1.0
+
+# OpenTelemetry for observability
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-otlp>=1.20.0
+
+# Data handling
+pandas>=2.0.0
+python-dotenv>=1.0.0
+
+# Jupyter
+jupyter>=1.0.0
+ipywidgets>=8.0.0
+
+# Utilities
+uuid
+retrying>=1.3.4

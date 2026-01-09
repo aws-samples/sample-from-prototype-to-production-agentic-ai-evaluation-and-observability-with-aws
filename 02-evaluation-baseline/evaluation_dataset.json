@@ -1,0 +1,287 @@
+{
+  "description": "Evaluation dataset for E-Commerce Customer Service Multi-Agent System",
+  "version": "1.0",
+  "created": "2025-01-08",
+  "test_cases": [
+    {
+      "id": "order_001",
+      "category": "order_status",
+      "difficulty": "easy",
+      "input": "What's the status of order ORD-2024-10002?",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status"],
+      "expected_output_contains": ["shipped", "UPS", "tracking"],
+      "ground_truth": "Order ORD-2024-10002 is shipped via UPS with tracking number 1Z999AA10123456784"
+    },
+    {
+      "id": "order_002",
+      "category": "order_tracking",
+      "difficulty": "easy",
+      "input": "Can you track my shipment for order ORD-2024-10009?",
+      "expected_agent": "order_agent",
+      "expected_tools": ["track_shipment"],
+      "expected_output_contains": ["DHL", "tracking", "delivery"],
+      "ground_truth": "Order shipped via DHL, tracking number DHL1234567890, estimated delivery 2025-01-10"
+    },
+    {
+      "id": "order_003",
+      "category": "order_return",
+      "difficulty": "medium",
+      "input": "I want to return order ORD-2024-10001. The headphones don't fit well.",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status", "process_return"],
+      "expected_output_contains": ["return", "approved", "shipping label"],
+      "ground_truth": "Return request submitted for delivered order within 30-day window"
+    },
+    {
+      "id": "order_004",
+      "category": "order_cancellation",
+      "difficulty": "medium",
+      "input": "I need to cancel order ORD-2024-10005. I changed my mind.",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status", "modify_order"],
+      "expected_output_contains": ["cancel"],
+      "ground_truth": "Order ORD-2024-10005 is pending and can be cancelled"
+    },
+    {
+      "id": "order_005",
+      "category": "order_history",
+      "difficulty": "easy",
+      "input": "Show me my recent orders for john.smith@email.com",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_customer_orders"],
+      "expected_output_contains": ["order", "ORD-2024"],
+      "ground_truth": "Customer has multiple orders including ORD-2024-10001 and ORD-2024-10004"
+    },
+    {
+      "id": "order_006",
+      "category": "order_not_found",
+      "difficulty": "easy",
+      "input": "Where is order ORD-9999-99999?",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status"],
+      "expected_output_contains": ["not found", "verify"],
+      "ground_truth": "Order not found - should ask customer to verify order number"
+    },
+    {
+      "id": "product_001",
+      "category": "product_search",
+      "difficulty": "easy",
+      "input": "Do you have any wireless headphones with noise cancellation?",
+      "expected_agent": "product_agent",
+      "expected_tools": ["search_products"],
+      "expected_output_contains": ["headphones", "noise cancellation"],
+      "ground_truth": "Should find PROD-001 Wireless Bluetooth Headphones with ANC"
+    },
+    {
+      "id": "product_002",
+      "category": "product_inventory",
+      "difficulty": "easy",
+      "input": "Is the 4K webcam PROD-088 in stock?",
+      "expected_agent": "product_agent",
+      "expected_tools": ["check_inventory"],
+      "expected_output_contains": ["out of stock", "restock"],
+      "ground_truth": "PROD-088 is out of stock, restock expected 2025-01-15"
+    },
+    {
+      "id": "product_003",
+      "category": "product_recommendation",
+      "difficulty": "medium",
+      "input": "I just bought wireless headphones. What accessories would you recommend?",
+      "expected_agent": "product_agent",
+      "expected_tools": ["get_product_recommendations"],
+      "expected_output_contains": ["recommend"],
+      "ground_truth": "Should recommend complementary products like cases, stands, or cables"
+    },
+    {
+      "id": "product_004",
+      "category": "product_comparison",
+      "difficulty": "medium",
+      "input": "Compare the Wireless Bluetooth Headphones PROD-001 with the Noise Canceling Earbuds PROD-055",
+      "expected_agent": "product_agent",
+      "expected_tools": ["compare_products"],
+      "expected_output_contains": ["compare", "headphones", "earbuds"],
+      "ground_truth": "Compare over-ear headphones ($79.99) vs true wireless earbuds ($149.99)"
+    },
+    {
+      "id": "product_005",
+      "category": "product_policy",
+      "difficulty": "easy",
+      "input": "What's your return policy for electronics?",
+      "expected_agent": "product_agent",
+      "expected_tools": ["get_return_policy"],
+      "expected_output_contains": ["30 day", "return", "refund"],
+      "ground_truth": "30-day return policy for electronics in original condition"
+    },
+    {
+      "id": "product_006",
+      "category": "product_details",
+      "difficulty": "easy",
+      "input": "Tell me about the Smart Watch Pro PROD-015",
+      "expected_agent": "product_agent",
+      "expected_tools": ["get_product_details", "search_products"],
+      "expected_output_contains": ["Smart Watch", "299.99", "GPS"],
+      "ground_truth": "Smart Watch Pro at $299.99 with GPS, health monitoring, 7-day battery"
+    },
+    {
+      "id": "account_001",
+      "category": "account_info",
+      "difficulty": "easy",
+      "input": "What's my account status for sarah.johnson@email.com?",
+      "expected_agent": "account_agent",
+      "expected_tools": ["get_account_info"],
+      "expected_output_contains": ["active", "platinum"],
+      "ground_truth": "Sarah Johnson has active platinum membership"
+    },
+    {
+      "id": "account_002",
+      "category": "password_reset",
+      "difficulty": "easy",
+      "input": "I forgot my password for john.smith@email.com. Can you help me reset it?",
+      "expected_agent": "account_agent",
+      "expected_tools": ["initiate_password_reset"],
+      "expected_output_contains": ["password", "reset", "email"],
+      "ground_truth": "Password reset email sent to registered address"
+    },
+    {
+      "id": "account_003",
+      "category": "membership_benefits",
+      "difficulty": "easy",
+      "input": "What benefits do I get with Gold membership?",
+      "expected_agent": "account_agent",
+      "expected_tools": ["get_membership_benefits"],
+      "expected_output_contains": ["Gold", "shipping", "points"],
+      "ground_truth": "Gold benefits include free shipping over $25, 1.5x points, early sale access"
+    },
+    {
+      "id": "account_004",
+      "category": "address_update",
+      "difficulty": "medium",
+      "input": "I need to update my shipping address to 555 New Street, San Francisco, CA 94102",
+      "expected_agent": "account_agent",
+      "expected_tools": ["update_shipping_address"],
+      "expected_output_contains": ["address", "updated"],
+      "ground_truth": "Shipping address updated successfully"
+    },
+    {
+      "id": "account_005",
+      "category": "payment_methods",
+      "difficulty": "easy",
+      "input": "What payment methods do I have on file for david.lee@email.com?",
+      "expected_agent": "account_agent",
+      "expected_tools": ["get_payment_methods"],
+      "expected_output_contains": ["Visa", "Mastercard", "card"],
+      "ground_truth": "David Lee has Visa ending in 7777 (default) and Mastercard ending in 8888"
+    },
+    {
+      "id": "account_006",
+      "category": "suspended_account",
+      "difficulty": "medium",
+      "input": "Why can't I place orders? My email is lisa.martinez@email.com",
+      "expected_agent": "account_agent",
+      "expected_tools": ["check_account_status", "get_account_info"],
+      "expected_output_contains": ["suspended", "dispute", "contact"],
+      "ground_truth": "Account suspended due to payment dispute - needs to contact support"
+    },
+    {
+      "id": "complex_001",
+      "category": "multi_agent",
+      "difficulty": "hard",
+      "input": "I want to return order ORD-2024-10001 and buy a better pair of headphones instead. What do you recommend?",
+      "expected_agents": ["order_agent", "product_agent"],
+      "expected_tools": ["process_return", "get_product_recommendations", "search_products"],
+      "expected_output_contains": ["return", "recommend"],
+      "ground_truth": "Process return for ORD-2024-10001 and recommend alternative headphones"
+    },
+    {
+      "id": "complex_002",
+      "category": "multi_agent",
+      "difficulty": "hard",
+      "input": "Update my address for mike.wilson@email.com and also check if my order ORD-2024-10003 has shipped yet",
+      "expected_agents": ["account_agent", "order_agent"],
+      "expected_tools": ["update_shipping_address", "get_order_status"],
+      "expected_output_contains": ["address", "processing"],
+      "ground_truth": "Address requires input and order is still processing"
+    },
+    {
+      "id": "complex_003",
+      "category": "multi_agent",
+      "difficulty": "hard",
+      "input": "I'm a Gold member and want to know my benefits. Also, is the ergonomic chair PROD-101 available?",
+      "expected_agents": ["account_agent", "product_agent"],
+      "expected_tools": ["get_membership_benefits", "check_inventory"],
+      "expected_output_contains": ["Gold", "chair", "stock"],
+      "ground_truth": "Gold benefits and ergonomic chair in stock (25 available)"
+    },
+    {
+      "id": "edge_001",
+      "category": "edge_case",
+      "difficulty": "medium",
+      "input": "yo wheres my stuff order 10002",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status"],
+      "expected_output_contains": ["order"],
+      "ground_truth": "Should handle informal language and incomplete order ID"
+    },
+    {
+      "id": "edge_002",
+      "category": "edge_case",
+      "difficulty": "medium",
+      "input": "What's the status of my return for ORD-2024-10006?",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status"],
+      "expected_output_contains": ["return", "pending"],
+      "ground_truth": "Order has return_requested status, pending approval"
+    },
+    {
+      "id": "edge_003",
+      "category": "out_of_scope",
+      "difficulty": "easy",
+      "input": "What's the weather like today?",
+      "expected_agent": "orchestrator",
+      "expected_tools": [],
+      "expected_output_contains": ["cannot", "help", "customer service"],
+      "ground_truth": "Should politely decline and redirect to customer service capabilities"
+    },
+    {
+      "id": "edge_004",
+      "category": "refund_status",
+      "difficulty": "medium",
+      "input": "Where's my refund for order ORD-2024-10007?",
+      "expected_agent": "order_agent",
+      "expected_tools": ["get_order_status"],
+      "expected_output_contains": ["refund", "199.99", "processed"],
+      "ground_truth": "Order was refunded $199.99 on 2024-12-10"
+    }
+  ],
+  "categories": {
+    "order_status": "Basic order status inquiries",
+    "order_tracking": "Shipment tracking requests",
+    "order_return": "Return initiation requests",
+    "order_cancellation": "Order cancellation requests",
+    "order_history": "Order history lookups",
+    "order_not_found": "Invalid order ID handling",
+    "product_search": "Product discovery queries",
+    "product_inventory": "Stock availability checks",
+    "product_recommendation": "Product suggestions",
+    "product_comparison": "Product comparisons",
+    "product_policy": "Policy inquiries",
+    "product_details": "Detailed product info",
+    "account_info": "Account information requests",
+    "password_reset": "Password recovery",
+    "membership_benefits": "Membership tier inquiries",
+    "address_update": "Address modifications",
+    "payment_methods": "Payment method queries",
+    "suspended_account": "Account issue handling",
+    "multi_agent": "Complex queries requiring multiple agents",
+    "edge_case": "Edge cases and informal language",
+    "out_of_scope": "Out of scope requests"
+  },
+  "metrics": {
+    "goal_success_rate": "Did the agent achieve the customer's goal?",
+    "tool_selection_accuracy": "Did the agent use the correct tools?",
+    "routing_accuracy": "Did the orchestrator route to the correct agent?",
+    "response_quality": "Was the response helpful, accurate, and professional?",
+    "policy_compliance": "Did the response follow company policies?"
+  }
+}

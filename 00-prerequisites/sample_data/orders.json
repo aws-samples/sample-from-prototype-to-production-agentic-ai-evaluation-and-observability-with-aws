@@ -1,0 +1,155 @@
+{
+  "description": "Sample orders data for E-Commerce Customer Service Workshop",
+  "table_name": "ecommerce-workshop-orders",
+  "orders": [
+    {
+      "order_id": "ORD-2024-10001",
+      "customer_id": "CUST-1001",
+      "customer_email": "john.smith@email.com",
+      "order_date": "2024-12-15",
+      "status": "delivered",
+      "shipping_carrier": "FedEx",
+      "tracking_number": "FX789456123",
+      "delivery_date": "2024-12-20",
+      "items": [
+        {"product_id": "PROD-001", "name": "Wireless Bluetooth Headphones", "quantity": 1, "price": 79.99}
+      ],
+      "total": 79.99,
+      "shipping_address": {"city": "New York", "state": "NY", "zip": "10001"}
+    },
+    {
+      "order_id": "ORD-2024-10002",
+      "customer_id": "CUST-1002",
+      "customer_email": "sarah.johnson@email.com",
+      "order_date": "2024-12-28",
+      "status": "shipped",
+      "shipping_carrier": "UPS",
+      "tracking_number": "1Z999AA10123456784",
+      "estimated_delivery": "2025-01-08",
+      "items": [
+        {"product_id": "PROD-015", "name": "Smart Watch Pro", "quantity": 1, "price": 299.99},
+        {"product_id": "PROD-016", "name": "Watch Band - Leather", "quantity": 2, "price": 29.99}
+      ],
+      "total": 359.97,
+      "shipping_address": {"city": "Los Angeles", "state": "CA", "zip": "90001"}
+    },
+    {
+      "order_id": "ORD-2024-10003",
+      "customer_id": "CUST-1003",
+      "customer_email": "mike.wilson@email.com",
+      "order_date": "2025-01-02",
+      "status": "processing",
+      "items": [
+        {"product_id": "PROD-042", "name": "4K Ultra HD Monitor 27\"", "quantity": 1, "price": 449.99}
+      ],
+      "total": 449.99,
+      "shipping_address": {"city": "Chicago", "state": "IL", "zip": "60601"}
+    },
+    {
+      "order_id": "ORD-2024-10004",
+      "customer_id": "CUST-1001",
+      "customer_email": "john.smith@email.com",
+      "order_date": "2024-12-01",
+      "status": "delivered",
+      "shipping_carrier": "USPS",
+      "tracking_number": "9400111899223456789012",
+      "delivery_date": "2024-12-05",
+      "items": [
+        {"product_id": "PROD-008", "name": "USB-C Hub 7-in-1", "quantity": 1, "price": 49.99},
+        {"product_id": "PROD-009", "name": "Laptop Stand Adjustable", "quantity": 1, "price": 39.99}
+      ],
+      "total": 89.98,
+      "shipping_address": {"city": "New York", "state": "NY", "zip": "10001"}
+    },
+    {
+      "order_id": "ORD-2024-10005",
+      "customer_id": "CUST-1004",
+      "customer_email": "emily.davis@email.com",
+      "order_date": "2025-01-05",
+      "status": "pending",
+      "items": [
+        {"product_id": "PROD-101", "name": "Ergonomic Office Chair", "quantity": 1, "price": 599.99}
+      ],
+      "total": 599.99,
+      "shipping_address": {"city": "Seattle", "state": "WA", "zip": "98101"}
+    },
+    {
+      "order_id": "ORD-2024-10006",
+      "customer_id": "CUST-1005",
+      "customer_email": "robert.brown@email.com",
+      "order_date": "2024-12-20",
+      "status": "return_requested",
+      "return_reason": "Item not as described",
+      "return_status": "pending_approval",
+      "shipping_carrier": "FedEx",
+      "tracking_number": "FX111222333",
+      "delivery_date": "2024-12-24",
+      "items": [
+        {"product_id": "PROD-055", "name": "Noise Canceling Earbuds", "quantity": 1, "price": 149.99}
+      ],
+      "total": 149.99,
+      "shipping_address": {"city": "Boston", "state": "MA", "zip": "02101"}
+    },
+    {
+      "order_id": "ORD-2024-10007",
+      "customer_id": "CUST-1006",
+      "customer_email": "lisa.martinez@email.com",
+      "order_date": "2024-11-25",
+      "status": "refunded",
+      "refund_amount": 199.99,
+      "refund_date": "2024-12-10",
+      "refund_reason": "Defective product",
+      "items": [
+        {"product_id": "PROD-033", "name": "Portable Bluetooth Speaker", "quantity": 1, "price": 199.99}
+      ],
+      "total": 199.99,
+      "shipping_address": {"city": "Miami", "state": "FL", "zip": "33101"}
+    },
+    {
+      "order_id": "ORD-2024-10008",
+      "customer_id": "CUST-1002",
+      "customer_email": "sarah.johnson@email.com",
+      "order_date": "2024-10-15",
+      "status": "delivered",
+      "shipping_carrier": "UPS",
+      "tracking_number": "1Z999AA10987654321",
+      "delivery_date": "2024-10-20",
+      "items": [
+        {"product_id": "PROD-022", "name": "Wireless Keyboard", "quantity": 1, "price": 79.99},
+        {"product_id": "PROD-023", "name": "Wireless Mouse", "quantity": 1, "price": 49.99}
+      ],
+      "total": 129.98,
+      "shipping_address": {"city": "Los Angeles", "state": "CA", "zip": "90001"}
+    },
+    {
+      "order_id": "ORD-2024-10009",
+      "customer_id": "CUST-1007",
+      "customer_email": "david.lee@email.com",
+      "order_date": "2025-01-06",
+      "status": "shipped",
+      "shipping_carrier": "DHL",
+      "tracking_number": "DHL1234567890",
+      "estimated_delivery": "2025-01-10",
+      "items": [
+        {"product_id": "PROD-077", "name": "Gaming Mechanical Keyboard RGB", "quantity": 1, "price": 159.99},
+        {"product_id": "PROD-078", "name": "Gaming Mouse Pad XL", "quantity": 1, "price": 29.99}
+      ],
+      "total": 189.98,
+      "shipping_address": {"city": "Austin", "state": "TX", "zip": "78701"}
+    },
+    {
+      "order_id": "ORD-2024-10010",
+      "customer_id": "CUST-1008",
+      "customer_email": "jennifer.taylor@email.com",
+      "order_date": "2024-12-30",
+      "status": "cancelled",
+      "cancellation_reason": "Customer requested",
+      "cancellation_date": "2024-12-31",
+      "items": [
+        {"product_id": "PROD-088", "name": "Webcam 4K HDR", "quantity": 1, "price": 199.99}
+      ],
+      "total": 199.99,
+      "shipping_address": {"city": "Denver", "state": "CO", "zip": "80201"}
+    }
+  ]
+}

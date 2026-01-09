@@ -1,0 +1,223 @@
+{
+  "description": "Customer accounts data for E-Commerce Customer Service Workshop",
+  "table_name": "ecommerce-workshop-accounts",
+  "accounts": [
+    {
+      "customer_id": "CUST-1001",
+      "email": "john.smith@email.com",
+      "first_name": "John",
+      "last_name": "Smith",
+      "phone": "+1-555-0101",
+      "account_status": "active",
+      "membership_tier": "gold",
+      "created_date": "2022-03-15",
+      "default_shipping_address": {
+        "street": "123 Main Street",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "4242", "brand": "Visa", "is_default": true},
+        {"type": "credit_card", "last_four": "1234", "brand": "Mastercard", "is_default": false}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": false,
+        "marketing_emails": true
+      },
+      "total_orders": 15,
+      "total_spent": 2456.78
+    },
+    {
+      "customer_id": "CUST-1002",
+      "email": "sarah.johnson@email.com",
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "phone": "+1-555-0102",
+      "account_status": "active",
+      "membership_tier": "platinum",
+      "created_date": "2021-08-22",
+      "default_shipping_address": {
+        "street": "456 Oak Avenue",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip": "90001",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "5678", "brand": "Amex", "is_default": true}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": true,
+        "marketing_emails": false
+      },
+      "total_orders": 42,
+      "total_spent": 8934.56
+    },
+    {
+      "customer_id": "CUST-1003",
+      "email": "mike.wilson@email.com",
+      "first_name": "Mike",
+      "last_name": "Wilson",
+      "phone": "+1-555-0103",
+      "account_status": "active",
+      "membership_tier": "standard",
+      "created_date": "2024-01-10",
+      "default_shipping_address": {
+        "street": "789 Pine Road",
+        "city": "Chicago",
+        "state": "IL",
+        "zip": "60601",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "9999", "brand": "Visa", "is_default": true}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": false,
+        "marketing_emails": true
+      },
+      "total_orders": 3,
+      "total_spent": 549.99
+    },
+    {
+      "customer_id": "CUST-1004",
+      "email": "emily.davis@email.com",
+      "first_name": "Emily",
+      "last_name": "Davis",
+      "phone": "+1-555-0104",
+      "account_status": "active",
+      "membership_tier": "gold",
+      "created_date": "2023-05-18",
+      "default_shipping_address": {
+        "street": "321 Elm Street",
+        "city": "Seattle",
+        "state": "WA",
+        "zip": "98101",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "paypal", "email": "emily.davis@email.com", "is_default": true}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": true,
+        "marketing_emails": true
+      },
+      "total_orders": 12,
+      "total_spent": 1876.43
+    },
+    {
+      "customer_id": "CUST-1005",
+      "email": "robert.brown@email.com",
+      "first_name": "Robert",
+      "last_name": "Brown",
+      "phone": "+1-555-0105",
+      "account_status": "active",
+      "membership_tier": "standard",
+      "created_date": "2024-06-01",
+      "default_shipping_address": {
+        "street": "555 Cedar Lane",
+        "city": "Boston",
+        "state": "MA",
+        "zip": "02101",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "1111", "brand": "Discover", "is_default": true}
+      ],
+      "preferences": {
+        "email_notifications": false,
+        "sms_notifications": false,
+        "marketing_emails": false
+      },
+      "total_orders": 5,
+      "total_spent": 623.45
+    },
+    {
+      "customer_id": "CUST-1006",
+      "email": "lisa.martinez@email.com",
+      "first_name": "Lisa",
+      "last_name": "Martinez",
+      "phone": "+1-555-0106",
+      "account_status": "suspended",
+      "suspension_reason": "Payment dispute",
+      "membership_tier": "standard",
+      "created_date": "2023-11-20",
+      "default_shipping_address": {
+        "street": "888 Palm Drive",
+        "city": "Miami",
+        "state": "FL",
+        "zip": "33101",
+        "country": "USA"
+      },
+      "payment_methods": [],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": false,
+        "marketing_emails": false
+      },
+      "total_orders": 8,
+      "total_spent": 1245.67
+    },
+    {
+      "customer_id": "CUST-1007",
+      "email": "david.lee@email.com",
+      "first_name": "David",
+      "last_name": "Lee",
+      "phone": "+1-555-0107",
+      "account_status": "active",
+      "membership_tier": "gold",
+      "created_date": "2022-09-30",
+      "default_shipping_address": {
+        "street": "444 Birch Court",
+        "city": "Austin",
+        "state": "TX",
+        "zip": "78701",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "7777", "brand": "Visa", "is_default": true},
+        {"type": "credit_card", "last_four": "8888", "brand": "Mastercard", "is_default": false}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": true,
+        "marketing_emails": true
+      },
+      "total_orders": 23,
+      "total_spent": 4567.89
+    },
+    {
+      "customer_id": "CUST-1008",
+      "email": "jennifer.taylor@email.com",
+      "first_name": "Jennifer",
+      "last_name": "Taylor",
+      "phone": "+1-555-0108",
+      "account_status": "active",
+      "membership_tier": "standard",
+      "created_date": "2024-10-05",
+      "default_shipping_address": {
+        "street": "222 Maple Avenue",
+        "city": "Denver",
+        "state": "CO",
+        "zip": "80201",
+        "country": "USA"
+      },
+      "payment_methods": [
+        {"type": "credit_card", "last_four": "3333", "brand": "Amex", "is_default": true}
+      ],
+      "preferences": {
+        "email_notifications": true,
+        "sms_notifications": false,
+        "marketing_emails": true
+      },
+      "total_orders": 2,
+      "total_spent": 399.98
+    }
+  ]
+}

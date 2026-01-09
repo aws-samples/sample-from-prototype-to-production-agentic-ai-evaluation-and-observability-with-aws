@@ -1,0 +1,200 @@
+{
+  "description": "Product catalog for E-Commerce Customer Service Workshop - to be ingested into Bedrock Knowledge Base",
+  "kb_name": "ecommerce-workshop-products-kb",
+  "products": [
+    {
+      "product_id": "PROD-001",
+      "name": "Wireless Bluetooth Headphones",
+      "category": "Audio",
+      "price": 79.99,
+      "description": "Premium over-ear wireless headphones with 40-hour battery life, active noise cancellation, and comfortable memory foam ear cushions.",
+      "specifications": {
+        "battery_life": "40 hours",
+        "bluetooth_version": "5.3",
+        "driver_size": "40mm",
+        "weight": "250g",
+        "noise_cancellation": "Active ANC"
+      },
+      "in_stock": true,
+      "stock_quantity": 150,
+      "rating": 4.5,
+      "warranty": "1 year manufacturer warranty",
+      "return_policy": "30-day return policy for unused items in original packaging"
+    },
+    {
+      "product_id": "PROD-015",
+      "name": "Smart Watch Pro",
+      "category": "Wearables",
+      "price": 299.99,
+      "description": "Advanced smartwatch with health monitoring, GPS, water resistance up to 50m, and 7-day battery life.",
+      "specifications": {
+        "display": "1.4\" AMOLED",
+        "battery_life": "7 days typical use",
+        "water_resistance": "50m",
+        "sensors": ["Heart rate", "SpO2", "ECG", "Temperature"],
+        "gps": "Built-in GPS + GLONASS"
+      },
+      "in_stock": true,
+      "stock_quantity": 75,
+      "rating": 4.7,
+      "warranty": "2 year manufacturer warranty",
+      "return_policy": "30-day return policy. Must include all accessories."
+    },
+    {
+      "product_id": "PROD-016",
+      "name": "Watch Band - Leather",
+      "category": "Accessories",
+      "price": 29.99,
+      "description": "Premium genuine leather watch band compatible with Smart Watch Pro. Available in black, brown, and tan.",
+      "specifications": {
+        "material": "Genuine leather",
+        "compatibility": "Smart Watch Pro",
+        "sizes": ["S/M", "M/L"],
+        "colors": ["Black", "Brown", "Tan"]
+      },
+      "in_stock": true,
+      "stock_quantity": 200,
+      "rating": 4.3,
+      "warranty": "90 days",
+      "return_policy": "14-day return policy for unused items"
+    },
+    {
+      "product_id": "PROD-042",
+      "name": "4K Ultra HD Monitor 27\"",
+      "category": "Monitors",
+      "price": 449.99,
+      "description": "Professional-grade 27-inch 4K monitor with HDR support, 99% sRGB color accuracy, and USB-C connectivity.",
+      "specifications": {
+        "resolution": "3840 x 2160 (4K UHD)",
+        "panel_type": "IPS",
+        "refresh_rate": "60Hz",
+        "response_time": "5ms",
+        "ports": ["HDMI 2.0 x2", "DisplayPort 1.4", "USB-C (65W PD)"],
+        "hdr": "HDR10"
+      },
+      "in_stock": true,
+      "stock_quantity": 45,
+      "rating": 4.6,
+      "warranty": "3 year manufacturer warranty",
+      "return_policy": "30-day return policy. Customer responsible for return shipping on non-defective items."
+    },
+    {
+      "product_id": "PROD-008",
+      "name": "USB-C Hub 7-in-1",
+      "category": "Accessories",
+      "price": 49.99,
+      "description": "Compact USB-C hub with HDMI output, SD card reader, USB-A ports, and 100W power delivery pass-through.",
+      "specifications": {
+        "ports": ["HDMI 4K@60Hz", "USB-A 3.0 x2", "USB-C PD 100W", "SD Card", "MicroSD", "Ethernet"],
+        "compatibility": "USB-C devices, MacBook, Windows laptops",
+        "power_delivery": "100W pass-through"
+      },
+      "in_stock": true,
+      "stock_quantity": 300,
+      "rating": 4.4,
+      "warranty": "1 year",
+      "return_policy": "30-day return policy"
+    },
+    {
+      "product_id": "PROD-055",
+      "name": "Noise Canceling Earbuds",
+      "category": "Audio",
+      "price": 149.99,
+      "description": "True wireless earbuds with adaptive noise cancellation, transparency mode, and 8-hour battery life per charge.",
+      "specifications": {
+        "battery_life": "8 hours (earbuds), 24 hours (with case)",
+        "anc": "Adaptive noise cancellation",
+        "water_resistance": "IPX4",
+        "bluetooth": "5.2",
+        "codecs": ["AAC", "aptX Adaptive"]
+      },
+      "in_stock": true,
+      "stock_quantity": 120,
+      "rating": 4.5,
+      "warranty": "1 year",
+      "return_policy": "30-day return policy. Hygiene restrictions may apply."
+    },
+    {
+      "product_id": "PROD-101",
+      "name": "Ergonomic Office Chair",
+      "category": "Furniture",
+      "price": 599.99,
+      "description": "Premium ergonomic office chair with adjustable lumbar support, headrest, and breathable mesh back.",
+      "specifications": {
+        "material": "Breathable mesh back, foam seat",
+        "adjustments": ["Height", "Armrests 4D", "Lumbar", "Tilt", "Headrest"],
+        "weight_capacity": "300 lbs",
+        "warranty_coverage": "Frame, mechanisms, foam"
+      },
+      "in_stock": true,
+      "stock_quantity": 25,
+      "rating": 4.8,
+      "warranty": "5 year warranty on frame, 2 years on components",
+      "return_policy": "30-day return policy. Customer responsible for return shipping. Must be unassembled."
+    },
+    {
+      "product_id": "PROD-077",
+      "name": "Gaming Mechanical Keyboard RGB",
+      "category": "Gaming",
+      "price": 159.99,
+      "description": "Full-size mechanical gaming keyboard with hot-swappable switches, per-key RGB lighting, and detachable wrist rest.",
+      "specifications": {
+        "switch_type": "Hot-swappable (Cherry MX compatible)",
+        "lighting": "Per-key RGB with 16.8M colors",
+        "connection": "USB-C detachable cable",
+        "anti_ghosting": "Full N-key rollover",
+        "media_controls": "Dedicated media keys + volume wheel"
+      },
+      "in_stock": true,
+      "stock_quantity": 60,
+      "rating": 4.6,
+      "warranty": "2 years",
+      "return_policy": "30-day return policy"
+    },
+    {
+      "product_id": "PROD-088",
+      "name": "Webcam 4K HDR",
+      "category": "Cameras",
+      "price": 199.99,
+      "description": "Professional 4K webcam with HDR, auto-focus, dual microphones, and privacy shutter.",
+      "specifications": {
+        "resolution": "4K @ 30fps, 1080p @ 60fps",
+        "hdr": "HDR support",
+        "field_of_view": "90 degrees",
+        "microphones": "Dual omnidirectional",
+        "features": ["Auto-focus", "Auto light correction", "Privacy shutter"]
+      },
+      "in_stock": false,
+      "stock_quantity": 0,
+      "restock_date": "2025-01-15",
+      "rating": 4.7,
+      "warranty": "2 years",
+      "return_policy": "30-day return policy"
+    },
+    {
+      "product_id": "PROD-033",
+      "name": "Portable Bluetooth Speaker",
+      "category": "Audio",
+      "price": 199.99,
+      "description": "Waterproof portable speaker with 360-degree sound, 20-hour battery, and party mode for multi-speaker pairing.",
+      "specifications": {
+        "battery_life": "20 hours",
+        "water_resistance": "IP67",
+        "output_power": "30W",
+        "bluetooth_range": "100 feet",
+        "features": ["Party mode", "Built-in mic", "USB-C charging"]
+      },
+      "in_stock": true,
+      "stock_quantity": 80,
+      "rating": 4.4,
+      "warranty": "1 year",
+      "return_policy": "30-day return policy"
+    }
+  ],
+  "policies": {
+    "general_return_policy": "Most items can be returned within 30 days of delivery for a full refund. Items must be in original condition with all packaging and accessories. Some categories (hygiene products, opened software) may have restrictions.",
+    "warranty_claims": "To file a warranty claim, contact customer service with your order number and description of the issue. We may request photos or videos of the defect. Approved claims will receive repair, replacement, or refund at our discretion.",
+    "price_match": "We offer price matching within 14 days of purchase if you find a lower price from an authorized retailer. Contact customer service with proof of the lower price.",
+    "shipping_policy": "Standard shipping (5-7 business days) is free for orders over $50. Express shipping (2-3 business days) is $9.99. Overnight shipping is $19.99. Alaska and Hawaii may have additional fees."
+  }
+}
