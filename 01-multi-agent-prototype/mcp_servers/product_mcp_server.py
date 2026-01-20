@@ -1,16 +1,28 @@
 """
-Product Information Tools for E-Commerce Customer Service Agent
+Product Information MCP Server for E-Commerce Customer Service
 
-These tools interact with DynamoDB for product information and inventory checks.
+Provides MCP tools for product-related operations:
+- search_products
+- get_product_details
+- check_inventory
+- get_product_recommendations
+- compare_products
+- get_return_policy
+
+Run with: python product_mcp_server.py
+Or: uvx mcp run product_mcp_server.py
 """
 
-import boto3
 import os
 import json
-from strands import tool
+import boto3
 from typing import Optional, List
-from boto3.dynamodb.conditions import Key, Attr
 from decimal import Decimal
+from boto3.dynamodb.conditions import Key, Attr
+from mcp.server.fastmcp import FastMCP
+
+# Initialize FastMCP server
+mcp = FastMCP("product-service")
 
 
 def get_dynamodb_table(table_name_suffix: str):
@@ -77,8 +89,8 @@ Return Policy: {product.get('return_policy', 'Standard 30-day return policy')}
 """
 
 
-@tool
-def search_products(query: str, category: Optional[str] = None, max_results: int = 5) -> dict:
+@mcp.tool()
+def search_products(query: str, category: Optional[str] = None, max_results: int = 5) -> str:
     """
     Search for products in the catalog using natural language query.
 
@@ -88,7 +100,7 @@ def search_products(query: str, category: Optional[str] = None, max_results: int
         max_results: Maximum number of results to return (default 5)
 
     Returns:
-        dict: Search results with matching products and their details
+        Search results with matching products and their details as JSON string
     """
     try:
         table = get_dynamodb_table('products')
@@ -122,12 +134,12 @@ def search_products(query: str, category: Optional[str] = None, max_results: int
         matched_products = matched_products[:max_results]
 
         if not matched_products:
-            return {
+            return json.dumps({
                 'success': True,
                 'query': query,
                 'results': [],
                 'message': f'No products found matching "{query}". Try different keywords or browse our categories.'
-            }
+            })
 
         # Format results
         results = []
@@ -141,24 +153,24 @@ def search_products(query: str, category: Optional[str] = None, max_results: int
                 'description': product.get('description', '')[:200] + '...' if len(product.get('description', '')) > 200 else product.get('description', '')
             })
 
-        return {
+        return json.dumps({
             'success': True,
             'query': query,
             'category_filter': category,
             'result_count': len(results),
             'results': results
-        }
+        }, default=str)
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': f'Error searching for products: {query}'
-        }
+        })
 
 
-@tool
-def get_product_details(product_id: str) -> dict:
+@mcp.tool()
+def get_product_details(product_id: str) -> str:
     """
     Get detailed information about a specific product.
 
@@ -166,43 +178,42 @@ def get_product_details(product_id: str) -> dict:
         product_id: Product ID (e.g., PROD-001)
 
     Returns:
-        dict: Detailed product information including specs, price, availability
+        Detailed product information including specs, price, availability as JSON string
     """
     try:
         table = get_dynamodb_table('products')
-
         response = table.get_item(Key={'product_id': product_id})
 
         if 'Item' not in response:
-            return {
+            return json.dumps({
                 'success': False,
                 'product_id': product_id,
                 'message': f'Product {product_id} not found in catalog.'
-            }
+            })
 
         product = response['Item']
 
         # Format product details as text
         details = format_product(product)
 
-        return {
+        return json.dumps({
             'success': True,
             'product_id': product_id,
             'details': details,
             'product_data': decimal_to_float(product),
             'source': 'product_catalog'
-        }
+        }, default=str)
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': f'Error retrieving product {product_id}'
-        }
+        })
 
 
-@tool
-def check_inventory(product_id: str) -> dict:
+@mcp.tool()
+def check_inventory(product_id: str) -> str:
     """
     Check inventory availability for a product.
 
@@ -210,19 +221,18 @@ def check_inventory(product_id: str) -> dict:
         product_id: Product ID to check
 
     Returns:
-        dict: Inventory status including stock level and restock date if applicable
+        Inventory status including stock level and restock date if applicable as JSON string
     """
     try:
         table = get_dynamodb_table('products')
-
         response = table.get_item(Key={'product_id': product_id})
 
         if 'Item' not in response:
-            return {
+            return json.dumps({
                 'success': False,
                 'product_id': product_id,
                 'message': f'Product {product_id} not found in inventory system.'
-            }
+            })
 
         product = response['Item']
         in_stock = product.get('in_stock', False)
@@ -243,18 +253,18 @@ def check_inventory(product_id: str) -> dict:
         else:
             result['message'] = 'In stock and ready to ship'
 
-        return result
+        return json.dumps(result, default=str)
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': f'Error checking inventory for {product_id}'
-        }
+        })
 
 
-@tool
-def get_product_recommendations(context: str, max_recommendations: int = 3) -> dict:
+@mcp.tool()
+def get_product_recommendations(context: str, max_recommendations: int = 3) -> str:
     """
     Get product recommendations based on user context or previous purchases.
 
@@ -263,7 +273,7 @@ def get_product_recommendations(context: str, max_recommendations: int = 3) -> d
         max_recommendations: Maximum number of recommendations (default 3)
 
     Returns:
-        dict: List of recommended products with reasons
+        List of recommended products with reasons as JSON string
     """
     try:
         table = get_dynamodb_table('products')
@@ -304,12 +314,12 @@ def get_product_recommendations(context: str, max_recommendations: int = 3) -> d
         items = [item for item in items if item.get('product_id') != 'POLICIES'][:max_recommendations]
 
         if not items:
-            return {
+            return json.dumps({
                 'success': True,
                 'context': context,
                 'recommendations': [],
                 'message': 'No specific recommendations available. Browse our popular categories!'
-            }
+            })
 
         recommendations = []
         for product in items:
@@ -321,37 +331,40 @@ def get_product_recommendations(context: str, max_recommendations: int = 3) -> d
                 'description': product.get('description', '')[:150] + '...' if len(product.get('description', '')) > 150 else product.get('description', '')
             })
 
-        return {
+        return json.dumps({
             'success': True,
             'context': context,
             'recommendation_count': len(recommendations),
             'recommendations': recommendations
-        }
+        }, default=str)
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': f'Error generating recommendations'
-        }
+        })
 
 
-@tool
-def compare_products(product_ids: List[str]) -> dict:
+@mcp.tool()
+def compare_products(product_ids: str) -> str:
     """
     Compare multiple products side by side.
 
     Args:
-        product_ids: List of product IDs to compare (e.g., ["PROD-001", "PROD-055"])
+        product_ids: Comma-separated list of product IDs to compare (e.g., "PROD-001,PROD-055")
 
     Returns:
-        dict: Comparison table with features and specifications
+        Comparison table with features and specifications as JSON string
     """
     try:
         table = get_dynamodb_table('products')
+
+        # Parse product IDs from comma-separated string
+        product_id_list = [pid.strip() for pid in product_ids.split(',')]
         comparisons = []
 
-        for product_id in product_ids:
+        for product_id in product_id_list:
             response = table.get_item(Key={'product_id': product_id})
 
             if 'Item' in response:
@@ -373,22 +386,22 @@ def compare_products(product_ids: List[str]) -> dict:
                     'error': 'Product not found'
                 })
 
-        return {
+        return json.dumps({
             'success': True,
             'products_compared': len(comparisons),
             'comparison': decimal_to_float(comparisons)
-        }
+        }, default=str)
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': 'Error comparing products'
-        }
+        })
 
 
-@tool
-def get_return_policy(product_id: Optional[str] = None) -> dict:
+@mcp.tool()
+def get_return_policy(product_id: Optional[str] = None) -> str:
     """
     Get return policy information, optionally for a specific product.
 
@@ -396,7 +409,7 @@ def get_return_policy(product_id: Optional[str] = None) -> dict:
         product_id: Optional product ID for product-specific return policy
 
     Returns:
-        dict: Return policy details
+        Return policy details as JSON string
     """
     try:
         table = get_dynamodb_table('products')
@@ -416,15 +429,15 @@ def get_return_policy(product_id: Optional[str] = None) -> dict:
                     product_policy = product.get('return_policy', '')
                     policy_text = f"{product_policy}\n\nGeneral Policy:\n{policy_text}"
 
-            return {
+            return json.dumps({
                 'success': True,
                 'product_id': product_id,
                 'policy': policy_text,
                 'all_policies': policies
-            }
+            })
         else:
             # Default policy
-            return {
+            return json.dumps({
                 'success': True,
                 'product_id': product_id,
                 'policy': '''Standard Return Policy:
@@ -437,11 +450,16 @@ def get_return_policy(product_id: Optional[str] = None) -> dict:
 Membership tiers have extended return windows:
 - Standard/Gold: 45 days
 - Platinum: 60 days'''
-            }
+            })
 
     except Exception as e:
-        return {
+        return json.dumps({
             'success': False,
             'error': str(e),
             'message': 'Error retrieving return policy'
-        }
+        })
+
+
+if __name__ == "__main__":
+    # Run the MCP server
+    mcp.run()

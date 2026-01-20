@@ -2,6 +2,7 @@
 Orchestrator Agent - Routes customer requests to appropriate specialized agents
 
 Uses Claude Sonnet (large LLM) for complex reasoning and coordination.
+Sub-agents (Order, Product) use MCP tools via MCPClient connections.
 """
 
 from strands import Agent, tool
@@ -176,7 +177,7 @@ For queries that span multiple domains, break them down and route to each releva
 """
 
 
-def create_orchestrator(region: str = 'us-east-1') -> Agent:
+def create_orchestrator(region: str = 'us-west-2') -> Agent:
     """Create and return the Orchestrator Agent instance"""
 
     # Use Claude Sonnet 4.5 for complex reasoning and coordination (global cross-region inference)
@@ -208,7 +209,7 @@ class MultiAgentCustomerService:
     and tracks usage metrics for cost analysis.
     """
 
-    def __init__(self, region: str = 'us-east-1'):
+    def __init__(self, region: str = 'us-west-2'):
         self.region = region
         self.orchestrator = create_orchestrator(region)
 
@@ -254,6 +255,14 @@ class MultiAgentCustomerService:
         self.product_agent_calls = 0
         self.account_agent_calls = 0
 
+    def cleanup(self):
+        """Clean up MCP client resources from sub-agents"""
+        global _order_agent, _product_agent
+        if _order_agent and hasattr(_order_agent, 'cleanup'):
+            _order_agent.cleanup()
+        if _product_agent and hasattr(_product_agent, 'cleanup'):
+            _product_agent.cleanup()
+
 
 # For testing
 if __name__ == "__main__":
@@ -277,3 +286,6 @@ if __name__ == "__main__":
 
     print(f"\n{'='*60}")
     print("Usage Stats:", service.get_usage_stats())
+
+    # Clean up MCP connections
+    service.cleanup()
