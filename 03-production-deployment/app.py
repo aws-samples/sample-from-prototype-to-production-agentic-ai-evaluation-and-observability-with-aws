@@ -138,49 +138,117 @@ def process_return(order_id: str, reason: str) -> dict:
 
 
 # Product Tools
+def get_products_table():
+    """Get DynamoDB products table"""
+    region = os.environ.get('AWS_REGION', 'us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name=region)
+    table_name = os.environ.get('PRODUCTS_TABLE_NAME', 'ecommerce-workshop-products')
+    return dynamodb.Table(table_name)
+
+
 @tool
 def search_products(query: str, max_results: int = 5) -> dict:
-    """Search for products using Bedrock Knowledge Base."""
+    """Search for products in the catalog using keywords."""
     try:
-        region = os.environ.get('AWS_REGION', 'us-east-1')
-        kb_id = os.environ.get('KNOWLEDGE_BASE_ID')
+        table = get_products_table()
+        query_lower = query.lower()
 
-        if not kb_id:
-            return {'success': False, 'error': 'Knowledge Base ID not configured'}
+        # Scan table to get all products
+        response = table.scan()
+        items = response.get('Items', [])
 
-        client = boto3.client('bedrock-agent-runtime', region_name=region)
-        response = client.retrieve(
-            knowledgeBaseId=kb_id,
-            retrievalQuery={'text': query},
-            retrievalConfiguration={
-                'vectorSearchConfiguration': {'numberOfResults': max_results}
+        # Filter out system items
+        items = [item for item in items if item.get('product_id') != 'POLICIES']
+
+        # Simple text matching on name and description
+        matched_products = []
+        for item in items:
+            name = item.get('name', '').lower()
+            description = item.get('description', '').lower()
+
+            # Check if query terms are in name or description
+            if any(term in name or term in description for term in query_lower.split()):
+                matched_products.append(item)
+
+        # Limit results
+        matched_products = matched_products[:max_results]
+
+        if not matched_products:
+            return {
+                'success': True,
+                'query': query,
+                'results': [],
+                'message': f'No products found matching "{query}". Try different keywords.'
             }
-        )
 
-        results = [
-            {'content': r.get('content', {}).get('text', ''), 'score': r.get('score', 0)}
-            for r in response.get('retrievalResults', [])
-        ]
+        # Format results
+        results = []
+        for product in matched_products:
+            results.append({
+                'product_id': product.get('product_id'),
+                'name': product.get('name'),
+                'price': float(product.get('price', 0)),
+                'category': product.get('category'),
+                'in_stock': product.get('in_stock'),
+                'description': product.get('description', '')[:200]
+            })
 
-        return {'success': True, 'query': query, 'results': results}
+        return {
+            'success': True,
+            'query': query,
+            'result_count': len(results),
+            'results': results
+        }
+
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f'Error searching for products: {query}'
+        }
 
 
 @tool
 def check_inventory(product_id: str) -> dict:
-    """Check inventory for a product."""
-    inventory = {
-        'PROD-001': {'in_stock': True, 'quantity': 150},
-        'PROD-015': {'in_stock': True, 'quantity': 75},
-        'PROD-042': {'in_stock': True, 'quantity': 45},
-        'PROD-088': {'in_stock': False, 'quantity': 0, 'restock_date': '2025-01-15'},
-        'PROD-101': {'in_stock': True, 'quantity': 25}
-    }
+    """Check inventory availability for a product."""
+    try:
+        table = get_products_table()
+        response = table.get_item(Key={'product_id': product_id})
 
-    if product_id in inventory:
-        return {'success': True, 'product_id': product_id, **inventory[product_id]}
-    return {'success': False, 'error': f'Product {product_id} not found'}
+        if 'Item' not in response:
+            return {
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} not found in inventory system.'
+            }
+
+        product = response['Item']
+        in_stock = product.get('in_stock', False)
+        quantity = product.get('stock_quantity', 0)
+
+        result = {
+            'success': True,
+            'product_id': product_id,
+            'in_stock': in_stock,
+            'quantity_available': float(quantity) if quantity else 0
+        }
+
+        if not in_stock:
+            result['restock_date'] = product.get('restock_date', 'Unknown')
+            result['message'] = f'Product is currently out of stock. Expected restock date: {result["restock_date"]}'
+        elif quantity < 10:
+            result['message'] = 'Low stock - order soon!'
+        else:
+            result['message'] = 'In stock and ready to ship'
+
+        return result
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f'Error checking inventory for {product_id}'
+        }
 
 
 # Account Tools
