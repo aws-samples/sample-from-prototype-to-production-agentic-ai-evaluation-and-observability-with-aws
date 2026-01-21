@@ -1,0 +1,7 @@
+strands-agents
+boto3
+uvicorn[standard]
+fastapi
+pydantic
+requests
+mcp
