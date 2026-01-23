@@ -37,6 +37,8 @@ app = FastAPI(title="Customer Service Orchestrator", version="1.0.0")
 # Global state
 orchestrator_agent = None
 agentcore_runtime_client = None
+last_agent_response = {}  # Track the last specialized agent response
+agent_calls = []  # Track all agent calls in current request
 
 
 class InvocationRequest(BaseModel):
@@ -47,12 +49,12 @@ class InvocationResponse(BaseModel):
     output: Dict[str, Any]
 
 
-def invoke_specialized_agent(agent_arn: str, prompt: str) -> str:
-    """Invoke a specialized agent via the SDK."""
+def invoke_specialized_agent(agent_arn: str, prompt: str) -> dict:
+    """Invoke a specialized agent via the SDK and return full response with metadata."""
     global agentcore_runtime_client
 
     if not agent_arn:
-        return "Agent not configured"
+        return {"message": "Agent not configured", "error": True}
 
     if agentcore_runtime_client is None:
         agentcore_runtime_client = boto3.client('bedrock-agentcore', region_name=REGION)
@@ -84,14 +86,18 @@ def invoke_specialized_agent(agent_arn: str, prompt: str) -> str:
         logger.info(f"Response from agent: {response_body[:500] if response_body else 'empty'}")
         response_data = json.loads(response_body)
 
-        # Extract message from response
+        # Return the full output including metadata
         if 'output' in response_data:
-            return response_data['output'].get('message', str(response_data['output']))
-        return str(response_data)
+            output = response_data['output']
+            if isinstance(output, dict):
+                return output  # Return full metadata
+            else:
+                return {"message": str(output)}
+        return {"message": str(response_data)}
 
     except Exception as e:
         logger.error(f"Error invoking agent {agent_arn}: {e}")
-        return f"Error communicating with agent: {str(e)}"
+        return {"message": f"Error communicating with agent: {str(e)}", "error": True}
 
 
 @tool
@@ -116,7 +122,15 @@ def ask_order_agent(query: str) -> str:
         return "Order Agent is not configured."
 
     logger.info(f"Routing to Order Agent: {query}")
-    return invoke_specialized_agent(ORDER_AGENT_ARN, query)
+    response_data = invoke_specialized_agent(ORDER_AGENT_ARN, query)
+
+    # Store the full response for later use
+    global last_agent_response, agent_calls
+    last_agent_response = response_data
+    agent_calls.append({"agent": "order-agent", "response": response_data})
+
+    # Return just the message for the tool interface
+    return response_data.get('message', str(response_data))
 
 
 @tool
@@ -142,7 +156,15 @@ def ask_product_agent(query: str) -> str:
         return "Product Agent is not configured."
 
     logger.info(f"Routing to Product Agent: {query}")
-    return invoke_specialized_agent(PRODUCT_AGENT_ARN, query)
+    response_data = invoke_specialized_agent(PRODUCT_AGENT_ARN, query)
+
+    # Store the full response for later use
+    global last_agent_response, agent_calls
+    last_agent_response = response_data
+    agent_calls.append({"agent": "product-agent", "response": response_data})
+
+    # Return just the message for the tool interface
+    return response_data.get('message', str(response_data))
 
 
 @tool
@@ -168,7 +190,15 @@ def ask_account_agent(query: str) -> str:
         return "Account Agent is not configured."
 
     logger.info(f"Routing to Account Agent: {query}")
-    return invoke_specialized_agent(ACCOUNT_AGENT_ARN, query)
+    response_data = invoke_specialized_agent(ACCOUNT_AGENT_ARN, query)
+
+    # Store the full response for later use
+    global last_agent_response, agent_calls
+    last_agent_response = response_data
+    agent_calls.append({"agent": "account-agent", "response": response_data})
+
+    # Return just the message for the tool interface
+    return response_data.get('message', str(response_data))
 
 
 def initialize_orchestrator():
@@ -246,6 +276,7 @@ async def startup_event():
 @app.post("/invocations", response_model=InvocationResponse)
 async def invoke_agent(request: InvocationRequest):
     """Main invocation endpoint for agent interactions."""
+    global agent_calls
     try:
         user_message = request.input.get("prompt", "")
         if not user_message:
@@ -257,13 +288,44 @@ async def invoke_agent(request: InvocationRequest):
         if orchestrator_agent is None:
             raise HTTPException(status_code=503, detail="Agent not initialized")
 
+        # Clear agent call tracking for new request
+        agent_calls = []
+
+        # Execute orchestrator with message
         result = orchestrator_agent(user_message)
 
+        # Aggregate metadata from all agent calls
+        total_tools_used = 0
+        agents_used = []
+        routing_info = []
+
+        for call in agent_calls:
+            agent_name = call["agent"]
+            agent_response = call["response"]
+            agents_used.append(agent_name)
+
+            # Get tools used from the specialized agent
+            if isinstance(agent_response, dict):
+                tools_count = agent_response.get("tools_used", 0)
+                total_tools_used += tools_count
+
+                routing_info.append({
+                    "agent": agent_name,
+                    "tools_used": tools_count,
+                    "has_error": agent_response.get("error", False)
+                })
+
+        # Build comprehensive response with metadata
         response = {
             "message": str(result),
             "agent": "orchestrator",
+            "routed_to": agents_used,  # Which agents were called
+            "tools_used": total_tools_used,  # Total tools across all agents
+            "routing_details": routing_info,  # Details per agent
             "timestamp": datetime.utcnow().isoformat()
         }
+
+        logger.info(f"Orchestrator response metadata: routed_to={agents_used}, tools_used={total_tools_used}")
 
         return InvocationResponse(output=response)
 

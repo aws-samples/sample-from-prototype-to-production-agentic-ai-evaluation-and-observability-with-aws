@@ -184,24 +184,29 @@ def invoke_orchestrator_a2a(orchestrator_arn: str, region: str, message: str, se
         if 'output' in response_data:
             output = response_data['output']
             if isinstance(output, dict):
-                # Check if the output contains nested agent response
-                if 'response' in output:
-                    # The orchestrator might return a nested response
-                    inner_response = output['response']
-                    if isinstance(inner_response, dict):
-                        result['message'] = inner_response.get('message', str(inner_response))
-                        result['agent'] = inner_response.get('agent', output.get('agent', 'orchestrator'))
-                        result['tools_used'] = inner_response.get('tools_used', output.get('tools_used', 0))
-                        result['timestamp'] = inner_response.get('timestamp', output.get('timestamp'))
+                # Extract message
+                result['message'] = output.get('message', str(output))
+
+                # Extract agent info - orchestrator returns which agents it routed to
+                if output.get('agent') == 'orchestrator' and 'routed_to' in output:
+                    # Orchestrator with routing info
+                    routed_agents = output.get('routed_to', [])
+                    if routed_agents:
+                        result['agent'] = f"orchestrator → {', '.join(routed_agents)}"
                     else:
-                        result['message'] = str(inner_response)
-                        result['agent'] = output.get('agent', 'orchestrator')
-                else:
-                    # Direct output format
-                    result['message'] = output.get('message', str(output))
-                    result['agent'] = output.get('agent', 'orchestrator')
+                        result['agent'] = 'orchestrator'
+
+                    # Get total tools used across all agents
                     result['tools_used'] = output.get('tools_used', 0)
-                    result['timestamp'] = output.get('timestamp')
+
+                    # Store routing details for debug view
+                    result['routing_details'] = output.get('routing_details', [])
+                else:
+                    # Direct agent response
+                    result['agent'] = output.get('agent', 'unknown')
+                    result['tools_used'] = output.get('tools_used', 0)
+
+                result['timestamp'] = output.get('timestamp')
             else:
                 # Output is a string
                 result['message'] = str(output)
