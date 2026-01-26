@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration from environment
 REGION = os.environ.get('AGENT_REGION', os.environ.get('AWS_REGION', 'us-west-2'))
-MODEL_ID = os.environ.get('MODEL_ID', 'us.anthropic.claude-3-5-sonnet-20241022-v2:0')
+MODEL_ID = os.environ.get('MODEL_ID', 'global.anthropic.claude-sonnet-4-5-20250929-v1:0')
 
 # Specialized Agent ARNs (set via environment variables)
 ORDER_AGENT_ARN = os.environ.get('ORDER_AGENT_ARN', '')

@@ -30,7 +30,7 @@ REGION = os.environ.get('AGENT_REGION', os.environ.get('AWS_REGION', 'us-west-2'
 GATEWAY_URL = os.environ.get('GATEWAY_URL', '')
 USER_POOL_ID = os.environ.get('USER_POOL_ID', '')
 CLIENT_ID = os.environ.get('CLIENT_ID', '')
-MODEL_ID = os.environ.get('MODEL_ID', 'us.anthropic.claude-3-5-sonnet-20241022-v2:0')
+MODEL_ID = os.environ.get('MODEL_ID', 'global.anthropic.claude-haiku-4-5-20251001-v1:0')
 
 # FastAPI app
 app = FastAPI(title="Account Agent Server", version="1.0.0")
