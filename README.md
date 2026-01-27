@@ -1,8 +1,18 @@
-# E-Commerce Customer Service Multi-Agent Workshop
+# From Prototype to Production with AWS
+## Agentic AI Evaluation and Observability Workshop
 
-## Production-Grade Agentic AI: From Prototype to Production with AWS
+Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor multi-agent systems using AWS Bedrock AgentCore.
 
-This hands-on workshop guides you through building, evaluating, deploying, and continuously improving a production-ready multi-agent customer service system using AWS services.
+---
+
+## Why This Workshop?
+
+**The Challenge**: Most AI agent projects fail in production—not because the agents don't work, but because teams lack the tools and practices to evaluate, monitor, and improve them at scale.
+
+**The Solution**: This workshop provides a complete framework for:
+- **Systematic Evaluation** - Test agents before deployment with custom evaluators
+- **Production Observability** - Monitor agent behavior with OTEL tracing
+- **Continuous Improvement** - Detect drift and iterate based on real data
 
 ---
 
@@ -10,30 +20,66 @@ This hands-on workshop guides you through building, evaluating, deploying, and c
 
 | Item | Details |
 |------|---------|
-| **Duration** | 4 hours |
+| **Duration** | 2 hours |
 | **Level** | Intermediate |
 | **Use Case** | E-Commerce Customer Service |
-| **Architecture** | Multi-Agent with Cost-Optimized LLM Strategy |
+| **Focus** | Evaluation, Observability & Production Readiness |
 
 ### What You'll Build
 
-A multi-agent customer service system that handles:
-- **Order inquiries**: Status, tracking, returns, modifications
-- **Product questions**: Search, recommendations, comparisons
-- **Account management**: Profile updates, payment methods, preferences
-
-### Key Learning Outcomes
-
-1. Build multi-agent systems with Strands SDK using mixed LLM strategy (cost optimization)
-2. Evaluate agents with synthetic datasets and custom evaluators
-3. Deploy to production with AgentCore Runtime, Gateway, and Memory
-4. Configure online evaluation for continuous monitoring
-5. Detect and respond to agent drift/degradation
-6. Implement safe deployment practices (shadow testing, canary)
+A production-ready multi-agent customer service system with:
+- **Multi-agent orchestration** - Specialized agents for orders, products, and accounts
+- **Comprehensive evaluation** - Custom evaluators for quality, routing, and compliance
+- **Full observability** - OTEL tracing, CloudWatch metrics, and batch evaluation
+- **Production deployment** - AWS Bedrock AgentCore with gateway and runtime
 
 ---
 
-## Architecture
+## Why AWS Bedrock AgentCore?
+
+AgentCore is AWS's fully managed service for deploying and operating AI agents at scale. Key benefits:
+
+| Benefit | Description |
+|---------|-------------|
+| **Managed Runtime** | Deploy agents without infrastructure management—auto-scaling, high availability, and security built-in |
+| **Built-in Observability** | OTEL-compliant tracing automatically captures agent interactions, tool calls, and LLM invocations |
+| **Gateway Integration** | Secure MCP tool connectivity with authentication and rate limiting |
+| **Cost Optimization** | Pay-per-invocation pricing with no idle costs |
+| **Enterprise Security** | VPC integration, IAM policies, and encryption at rest/in-transit |
+
+### AgentCore Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        AWS Bedrock AgentCore                            │
+│                                                                         │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    │
+│  │  AgentCore      │    │  AgentCore      │    │  CloudWatch     │    │
+│  │  Runtime        │◄──►│  Gateway        │    │  (OTEL Traces)  │    │
+│  │  (Your Agents)  │    │  (MCP Tools)    │    │                 │    │
+│  └────────┬────────┘    └─────────────────┘    └────────▲────────┘    │
+│           │                                             │              │
+│           │              Auto-instrumented              │              │
+│           └─────────────────────────────────────────────┘              │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Key Learning Outcomes
+
+By the end of this workshop, you will:
+
+1. **Build** multi-agent systems with Strands SDK using cost-optimized LLM routing
+2. **Evaluate** agents systematically with custom evaluators (routing, compliance, quality)
+3. **Deploy** to production with AgentCore Runtime and Gateway
+4. **Observe** agent behavior through OTEL traces and CloudWatch metrics
+5. **Analyze** production traffic with batch evaluation pipelines
+
+---
+
+## Multi-Agent Architecture
 
 ```
                               ┌─────────────────────────────────┐
@@ -57,62 +103,107 @@ A multi-agent customer service system that handles:
     │ • Order status    │       │ • Product search    │       │ • Profile update  │
     │ • Tracking        │       │ • Recommendations   │       │ • Password reset  │
     │ • Returns/Refunds │       │ • Inventory check   │       │ • Payment methods │
-    └─────────┬─────────┘       └──────────┬──────────┘       └─────────┬─────────┘
-              │                            │                            │
-              ▼                            ▼                            ▼
-    ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-    │   Orders DB     │         │   Products KB   │         │   Accounts DB   │
-    │   (DynamoDB)    │         │   (Bedrock KB)  │         │   (DynamoDB)    │
-    └─────────────────┘         └─────────────────┘         └─────────────────┘
+    └───────────────────┘       └─────────────────────┘       └───────────────────┘
 ```
 
 ---
 
 ## Workshop Modules
 
-### Module 1: Multi-Agent Prototype (60 min)
-**Notebook**: `01-multi-agent-prototype/01-multi-agent-prototype.ipynb`
+### Module 1: Multi-Agent Prototype (20 min)
+**Directory**: `01-multi-agent-prototype/`
 
-- Build specialized sub-agents with Claude Haiku 4.5 (cost-efficient)
-- Create orchestrator agent with Claude Sonnet 4.5 (reasoning)
-- Implement real tools connecting to DynamoDB and Bedrock KB
-- Compare cost: All-Sonnet vs Mixed architecture
+Build a working multi-agent system locally:
+- Create specialized sub-agents with Claude Haiku 4.5 (cost-efficient)
+- Build orchestrator agent with Claude Sonnet 4.5 (reasoning)
+- Implement tools connecting to mock data stores
+- Test the complete agent flow
 
-### Module 2: Evaluation & Baseline Testing (60 min)
-**Notebook**: `02-evaluation-baseline/02-evaluation-baseline.ipynb`
+### Module 2: Evaluation & Baseline (25 min)
+**Directory**: `02-evaluation-baseline/`
 
-- Run evaluation with synthetic dataset (200+ test cases)
-- Use built-in evaluators: GoalSuccess, ToolSelection, Correctness
-- Create custom evaluators for policy compliance and routing accuracy
-- Establish baseline metrics for production comparison
+Establish quality baselines before deployment:
+- Define custom evaluators for your use case:
+  - **Goal Success** - Did the agent address the request?
+  - **Routing Accuracy** - Was the correct sub-agent invoked?
+  - **Policy Compliance** - Does the response follow business rules?
+  - **Response Quality** - Is the output helpful and accurate?
+- Run evaluation with synthetic test cases
+- Analyze results and identify improvement areas
 
-### Module 3: Production Deployment with AgentCore (60 min)
-**Notebook**: `03-production-deployment/03-production-deployment.ipynb`
+### Module 3: Production Deployment (20 min)
+**Directory**: `03-production-deployment/`
 
-- Deploy to AgentCore Runtime
-- Configure AgentCore Gateway for MCP tool integration
-- Set up AgentCore Memory for conversation persistence
-- Configure observability with CloudWatch
+Deploy agents to AWS with full observability:
+- Package agents for AgentCore Runtime
+- Configure AgentCore Gateway for MCP tools
+- Deploy with auto-instrumented OTEL tracing
+- Verify deployment with test invocations
 
-### Module 4: Online Evaluation & Continuous Improvement (60 min)
-**Notebook**: `04-online-eval-improvement/04-online-eval-improvement.ipynb`
+### Module 4: Online Observability (25 min)
+**Directory**: `04-online-eval-observability/`
 
-- Configure online evaluation with sampling
-- Simulate drift scenarios (new products, policy changes)
-- Collect and analyze failed samples from traces
-- Improve agent and validate with safe deployment practices
+Monitor agents in production:
+- View OTEL traces in CloudWatch
+- Analyze agent behavior patterns
+- Build a Streamlit dashboard for real-time monitoring
+- Understand trace structure and tool call visibility
+
+### Module 5: Production Batch Evaluation (30 min)
+**Directory**: `05-production-batch-evaluation/`
+
+Evaluate production traffic at scale:
+- Export OTEL traces from agent runtime logs
+- Extract actual tool calls from trace events
+- Run batch evaluation with the same evaluators from Module 2
+- Store results to S3 and CloudWatch metrics
+- Identify trends and regression patterns
 
 ---
 
-## Pre-built Resources (Provided by Workshop)
+## Evaluation & Observability Pipeline
 
-| Resource | Type | Description |
-|----------|------|-------------|
-| **Orders Database** | DynamoDB | 10,000 synthetic orders |
-| **Products Knowledge Base** | Bedrock KB | 500+ products with specs |
-| **Accounts Database** | DynamoDB | 1,000 customer profiles |
-| **Evaluation Dataset** | JSON | 200+ test cases |
-| **Drift Scenarios** | JSON | Pre-defined degradation tests |
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   Production Evaluation Pipeline                             │
+│                                                                              │
+│  ┌──────────────────┐                                                       │
+│  │ Agent Runtime    │                                                       │
+│  │  Log Groups      │  OTEL traces automatically captured                   │
+│  │ (OTEL Events)    │                                                       │
+│  └────────┬─────────┘                                                       │
+│           │                                                                  │
+│           │  CloudWatch Logs Subscription                                   │
+│           ▼                                                                  │
+│  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │ Kinesis Firehose │────▶│   S3 Bucket      │────▶│   Batch Eval     │    │
+│  │ (Real-time)      │     │ (Historical)     │     │  (Strands Eval)  │    │
+│  └──────────────────┘     └──────────────────┘     └────────┬─────────┘    │
+│                                                              │              │
+│                              ┌───────────────────────────────┼──────────┐   │
+│                              │                               │          │   │
+│                              ▼                               ▼          ▼   │
+│                       ┌──────────┐              ┌──────────────┐  ┌────────┐│
+│                       │   S3     │              │  CloudWatch  │  │ Alerts ││
+│                       │ Results  │              │   Metrics    │  │        ││
+│                       └──────────┘              └──────────────┘  └────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Custom Evaluators
+
+The workshop teaches you to build domain-specific evaluators:
+
+| Evaluator | What It Measures | Example Criteria |
+|-----------|------------------|------------------|
+| **Goal Success** | Did the agent complete the task? | Request fully addressed, accurate information |
+| **Helpfulness** | How useful was the response? | Actionable, anticipates follow-ups |
+| **Routing Accuracy** | Was the right agent invoked? | Order questions → Order Agent |
+| **Policy Compliance** | Does it follow business rules? | 30-day return policy, security guidelines |
+| **Response Quality** | Overall quality score | Clear, professional, complete |
+| **Customer Satisfaction** | Predicted CSAT | Issue resolved, low effort |
 
 ---
 
@@ -120,69 +211,60 @@ A multi-agent customer service system that handles:
 
 ### AWS Services Required
 - Amazon Bedrock (Claude Sonnet 4.5, Claude Haiku 4.5)
-- Amazon Bedrock Knowledge Bases
-- Amazon DynamoDB
-- Amazon Bedrock AgentCore (Runtime, Gateway, Memory, Evaluation)
+- Amazon Bedrock AgentCore (Runtime, Gateway)
 - Amazon CloudWatch
+- Amazon S3
+- Amazon Kinesis Firehose
 - AWS IAM
 
 ### Model Access
-Enable the following models in Amazon Bedrock (using global cross-region inference):
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Orchestrator)
-- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Sub-agents)
+Enable in Amazon Bedrock console:
+- `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
+- `us.anthropic.claude-haiku-4-5-20251001-v1:0`
 
 ### Python Dependencies
 ```bash
-pip install -r 00-prerequisites/requirements.txt
+pip install strands-agents strands-agents-evals boto3 pandas streamlit
 ```
 
 ---
 
 ## Quick Start
 
-1. **Verify Infrastructure** (pre-deployed by Workshop Studio)
-   ```bash
-   cd 00-prerequisites
-   python verify_infrastructure.py
-   ```
-
-2. **Run Module 1**: Build the multi-agent prototype
-3. **Run Module 2**: Evaluate and establish baseline
-4. **Run Module 3**: Deploy to production
-5. **Run Module 4**: Monitor, detect drift, and improve
-
----
-
-## Cost Optimization Results
-
-Using Claude Sonnet 4.5 and Haiku 4.5 with global cross-region inference:
-
-| Model | Input (per 1M tokens) | Output (per 1M tokens) |
-|-------|----------------------|------------------------|
-| Claude Sonnet 4.5 | $3.00 | $15.00 |
-| Claude Haiku 4.5 | $0.80 | $4.00 |
-
-| Architecture | Avg Tokens/Request | Cost/1000 Requests | Savings |
-|--------------|-------------------|-------------------|---------|
-| All Sonnet 4.5 | ~4,500 | ~$0.081 | - |
-| Sonnet 4.5 + Haiku 4.5 (this workshop) | ~3,700 mixed | ~$0.040 | **~50%** |
-
-*Pricing from [AWS Bedrock Pricing](https://aws.amazon.com/bedrock/pricing/) - verify for latest rates*
-
----
-
-## Cleanup
-
-After completing the workshop:
 ```bash
-cd cleanup
-./cleanup.sh
+# 1. Clone and setup
+cd ecommerce-agent-workshop
+pip install -r requirements.txt
+
+# 2. Verify AWS access
+aws sts get-caller-identity
+
+# 3. Run modules in order
+# Module 1 → Module 2 → Module 3 → Module 4 → Module 5
 ```
+
+---
+
+## Key Takeaways
+
+After completing this workshop, you'll understand:
+
+1. **Evaluation is not optional** - Systematic testing prevents production failures
+2. **Observability enables improvement** - You can't fix what you can't see
+3. **AgentCore simplifies operations** - Focus on agent logic, not infrastructure
+4. **Tool calls reveal routing** - OTEL traces show exactly what agents do
+5. **Batch evaluation scales** - Evaluate thousands of traces efficiently
+
 
 ---
 
 ## Additional Resources
 
 - [Strands Agents Documentation](https://strandsagents.com/)
-- [Amazon Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock-agentcore/)
-- [AWS Workshop Studio](https://workshops.aws/)
+- [Amazon Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html)
+
+---
+
+## License
+
+This workshop is provided for educational purposes. See LICENSE file for details.
