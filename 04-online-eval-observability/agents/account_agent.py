@@ -27,10 +27,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# NOTE: Do NOT manually configure OTLP exporter here!
-# The opentelemetry-instrument wrapper (in Dockerfile CMD) + aws-opentelemetry-distro
-# automatically configures OTEL tracing via environment variables.
-
 # Initialize AgentCore Runtime App (provides automatic OTEL instrumentation)
 app = BedrockAgentCoreApp()
 
