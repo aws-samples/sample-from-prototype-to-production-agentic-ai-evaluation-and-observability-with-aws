@@ -68,6 +68,9 @@ coverage.xml
 # Local data (results from running notebooks)
 02-evaluation-baseline/evaluation_results.csv
 02-evaluation-baseline/baseline_metrics.json
+02-evaluation-baseline/.deepeval/
+02-evaluation-baseline/deepeval_results.json
+03-production-deployment/streamlit_app/gateway_config.json
 
 # MacOS
 .DS_Store
