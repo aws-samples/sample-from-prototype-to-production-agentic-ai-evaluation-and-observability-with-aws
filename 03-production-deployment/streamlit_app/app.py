@@ -369,7 +369,7 @@ def initialize_agent():
                     st.session_state.tools = tools
 
                     # Create agent
-                    model_id = gateway_config.get('model_id', 'us.anthropic.claude-3-5-sonnet-20241022-v2:0')
+                    model_id = gateway_config.get('model_id', 'global.anthropic.claude-3-5-sonnet-20241022-v2:0')
                     agent = create_supervisor_agent(model_id, tools, gateway_config['region'])
                     st.session_state.agent = agent
                     st.session_state.region = gateway_config['region']

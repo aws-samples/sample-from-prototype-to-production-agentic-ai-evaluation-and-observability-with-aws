@@ -37,7 +37,7 @@ REGION = os.environ.get('AGENT_REGION', os.environ.get('AWS_REGION', 'us-west-2'
 GATEWAY_URL = os.environ.get('GATEWAY_URL', '')
 USER_POOL_ID = os.environ.get('USER_POOL_ID', '')
 CLIENT_ID = os.environ.get('CLIENT_ID', '')
-MODEL_ID = os.environ.get('MODEL_ID', 'us.anthropic.claude-sonnet-4-20250514-v1:0')
+MODEL_ID = os.environ.get('MODEL_ID', 'global.anthropic.claude-sonnet-4-20250514-v1:0')
 
 
 def get_oauth_token() -> str | None:

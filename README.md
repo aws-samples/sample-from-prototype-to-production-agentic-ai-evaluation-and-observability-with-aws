@@ -218,9 +218,9 @@ The workshop teaches you to build domain-specific evaluators:
 - AWS IAM
 
 ### Model Access
-Enable in Amazon Bedrock console:
-- `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
-- `us.anthropic.claude-haiku-4-5-20251001-v1:0`
+Enable in Amazon Bedrock console (using global cross-region inference):
+- `global.anthropic.claude-sonnet-4-5-20250929-v1:0`
+- `global.anthropic.claude-haiku-4-5-20251001-v1:0`
 
 ### Python Dependencies
 ```bash
