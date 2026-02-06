@@ -1,7 +1,7 @@
 # From Prototype to Production with AWS
 ## Agentic AI Evaluation and Observability Workshop
 
-Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor multi-agent systems using AWS Bedrock AgentCore.
+Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor AI agents using AWS Bedrock AgentCore — starting with a single agent with RBAC and progressing to production deployment with observability.
 
 ---
 
@@ -27,11 +27,11 @@ Transform your AI agents from promising prototypes into production-ready systems
 
 ### What You'll Build
 
-A production-ready multi-agent customer service system with:
-- **Multi-agent orchestration** - Specialized agents for orders, products, and accounts
-- **Comprehensive evaluation** - Custom evaluators for quality, routing, and compliance
+A production-ready AI agent system for e-commerce, progressing from simple to complex:
+- **Single agent with RBAC** - Product catalog agent with customer/admin role-based access control
+- **Comprehensive evaluation** - Custom evaluators for quality, tool accuracy, and access control compliance
 - **Full observability** - OTEL tracing, CloudWatch metrics, and batch evaluation
-- **Production deployment** - AWS Bedrock AgentCore with gateway and runtime
+- **Production deployment** - AWS Bedrock AgentCore with gateway, runtime, and Identity (JWT auth)
 
 ---
 
@@ -71,53 +71,68 @@ AgentCore is AWS's fully managed service for deploying and operating AI agents a
 
 By the end of this workshop, you will:
 
-1. **Build** multi-agent systems with Strands SDK using cost-optimized LLM routing
-2. **Evaluate** agents systematically with custom evaluators (routing, compliance, quality)
-3. **Deploy** to production with AgentCore Runtime and Gateway
+1. **Build** a single agent with MCP tools and role-based access control
+2. **Evaluate** the agent systematically with custom evaluators (tool accuracy, compliance, quality)
+3. **Deploy** to production with AgentCore Runtime, Gateway, and Identity
 4. **Observe** agent behavior through OTEL traces and CloudWatch metrics
 5. **Analyze** production traffic with batch evaluation pipelines
 
 ---
 
-## Multi-Agent Architecture
+## Module 1 Architecture — Single Agent with RBAC
 
 ```
-                              ┌─────────────────────────────────┐
-                              │     Customer Request            │
-                              └─────────────┬───────────────────┘
-                                            │
-                              ┌─────────────▼───────────────────┐
-                              │   ORCHESTRATOR AGENT            │
-                              │   (Claude Sonnet 4.5)           │
-                              │   • Intent classification       │
-                              │   • Complex query handling      │
-                              │   • Agent coordination          │
-                              └─────────────┬───────────────────┘
-                                            │
-              ┌─────────────────────────────┼─────────────────────────────┐
-              │                             │                             │
-    ┌─────────▼─────────┐       ┌──────────▼──────────┐       ┌─────────▼─────────┐
-    │   ORDER AGENT     │       │   PRODUCT AGENT     │       │   ACCOUNT AGENT   │
-    │ (Claude Haiku 4.5)│       │ (Claude Haiku 4.5)  │       │ (Claude Haiku 4.5)│
-    │                   │       │                     │       │                   │
-    │ • Order status    │       │ • Product search    │       │ • Profile update  │
-    │ • Tracking        │       │ • Recommendations   │       │ • Password reset  │
-    │ • Returns/Refunds │       │ • Inventory check   │       │ • Payment methods │
-    └───────────────────┘       └─────────────────────┘       └───────────────────┘
+                    ┌──────────────────────────────┐
+                    │      User Request            │
+                    │  (with role: customer/admin)  │
+                    └──────────────┬───────────────┘
+                                   │
+                    ┌──────────────▼───────────────┐
+                    │   PRODUCT CATALOG AGENT       │
+                    │   (Claude Haiku 4.5)          │
+                    │   • Role-aware system prompt  │
+                    │   • Tool filtering by role    │
+                    └──────────────┬───────────────┘
+                                   │
+                    ┌──────────────▼───────────────┐
+                    │   Product MCP Server          │
+                    │   (FastMCP - single server)   │
+                    │                               │
+                    │  READ tools (customer+admin): │
+                    │  • search_products            │
+                    │  • get_product_details        │
+                    │  • check_inventory            │
+                    │  • get_product_recommendations│
+                    │  • compare_products           │
+                    │  • get_return_policy          │
+                    │                               │
+                    │  WRITE tools (admin only):    │
+                    │  • create_product             │
+                    │  • update_product             │
+                    │  • delete_product             │
+                    │  • update_inventory           │
+                    │  • update_pricing             │
+                    └──────────────┬───────────────┘
+                                   │
+                    ┌──────────────▼───────────────┐
+                    │       DynamoDB               │
+                    │    Products Table            │
+                    └──────────────────────────────┘
 ```
 
 ---
 
 ## Workshop Modules
 
-### Module 1: Multi-Agent Prototype (20 min)
-**Directory**: `01-multi-agent-prototype/`
+### Module 1: Single Agent Prototype with RBAC (25 min)
+**Directory**: `01-single-agent-prototype/`
 
-Build a working multi-agent system locally:
-- Create specialized sub-agents with Claude Haiku 4.5 (cost-efficient)
-- Build orchestrator agent with Claude Sonnet 4.5 (reasoning)
-- Implement tools connecting to mock data stores
-- Test the complete agent flow
+Build a single product catalog agent with role-based access control:
+- Connect to an MCP server with 11 tools (6 read + 5 admin write)
+- Implement RBAC via tool filtering — customers get read tools, admins get all tools
+- Test customer persona (search, browse, compare) and admin persona (create, update, delete)
+- Validate access control boundaries — customers cannot perform admin operations
+- Preview how local RBAC maps to AgentCore Identity JWT auth in production
 
 ### Module 2: Evaluation & Baseline (25 min)
 **Directory**: `02-evaluation-baseline/`
@@ -125,7 +140,8 @@ Build a working multi-agent system locally:
 Establish quality baselines before deployment:
 - Define custom evaluators for your use case:
   - **Goal Success** - Did the agent address the request?
-  - **Routing Accuracy** - Was the correct sub-agent invoked?
+  - **Tool Accuracy** - Did the agent use the correct tool?
+  - **Access Control Compliance** - Did RBAC correctly restrict operations?
   - **Policy Compliance** - Does the response follow business rules?
   - **Response Quality** - Is the output helpful and accurate?
 - Run evaluation with synthetic test cases
@@ -199,8 +215,8 @@ The workshop teaches you to build domain-specific evaluators:
 | Evaluator | What It Measures | Example Criteria |
 |-----------|------------------|------------------|
 | **Goal Success** | Did the agent complete the task? | Request fully addressed, accurate information |
-| **Helpfulness** | How useful was the response? | Actionable, anticipates follow-ups |
-| **Routing Accuracy** | Was the right agent invoked? | Order questions → Order Agent |
+| **Tool Accuracy** | Was the correct tool invoked? | Search query → search_products tool |
+| **Access Control** | Does RBAC work correctly? | Customer blocked from admin tools |
 | **Policy Compliance** | Does it follow business rules? | 30-day return policy, security guidelines |
 | **Response Quality** | Overall quality score | Clear, professional, complete |
 | **Customer Satisfaction** | Predicted CSAT | Issue resolved, low effort |
@@ -219,8 +235,8 @@ The workshop teaches you to build domain-specific evaluators:
 
 ### Model Access
 Enable in Amazon Bedrock console (using global cross-region inference):
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0`
-- `global.anthropic.claude-haiku-4-5-20251001-v1:0`
+- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (agent model for all modules)
+- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (evaluation judge model)
 
 ### Python Dependencies
 ```bash

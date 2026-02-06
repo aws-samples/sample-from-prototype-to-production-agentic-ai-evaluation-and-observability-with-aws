@@ -1,13 +1,22 @@
 """
-Product Information MCP Server for E-Commerce Customer Service
+Product Catalog MCP Server for E-Commerce Agent Workshop
 
-Provides MCP tools for product-related operations:
+Provides MCP tools for product-related operations organized by access level:
+
+READ tools (available to all roles):
 - search_products
 - get_product_details
 - check_inventory
 - get_product_recommendations
 - compare_products
 - get_return_policy
+
+ADMIN tools (restricted to admin role):
+- create_product
+- update_product
+- delete_product
+- update_inventory
+- update_pricing
 
 Run with: python product_mcp_server.py
 Or: uvx mcp run product_mcp_server.py
@@ -16,6 +25,7 @@ Or: uvx mcp run product_mcp_server.py
 import os
 import json
 import boto3
+from datetime import datetime
 from typing import Optional, List
 from decimal import Decimal
 from boto3.dynamodb.conditions import Key, Attr
@@ -457,6 +467,418 @@ Membership tiers have extended return windows:
             'success': False,
             'error': str(e),
             'message': 'Error retrieving return policy'
+        })
+
+
+# =============================================================================
+# ADMIN TOOLS - These tools modify the product catalog.
+# In production, access is restricted to admin roles via RBAC.
+# =============================================================================
+
+
+@mcp.tool()
+def create_product(
+    product_id: str,
+    name: str,
+    category: str,
+    price: float,
+    description: str,
+    specifications: str,
+    stock_quantity: int = 0,
+    warranty: str = "1 year manufacturer warranty",
+    return_policy: str = "30-day return policy"
+) -> str:
+    """
+    Create a new product in the catalog. Requires admin privileges.
+
+    Args:
+        product_id: Unique product ID (e.g., PROD-200)
+        name: Product name
+        category: Product category (e.g., Audio, Wearables, Gaming, Monitors, Accessories, Cameras, Furniture)
+        price: Product price in USD
+        description: Product description
+        specifications: Product specifications as JSON string (e.g., '{"weight": "250g", "color": "black"}')
+        stock_quantity: Initial stock quantity (default 0)
+        warranty: Warranty information (default "1 year manufacturer warranty")
+        return_policy: Return policy (default "30-day return policy")
+
+    Returns:
+        Confirmation of product creation as JSON string
+    """
+    try:
+        table = get_dynamodb_table('products')
+
+        # Check if product already exists
+        existing = table.get_item(Key={'product_id': product_id})
+        if 'Item' in existing:
+            return json.dumps({
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} already exists. Use update_product to modify it.'
+            })
+
+        # Parse specifications
+        try:
+            specs = json.loads(specifications) if isinstance(specifications, str) else specifications
+        except json.JSONDecodeError:
+            return json.dumps({
+                'success': False,
+                'error': 'Invalid specifications format. Please provide valid JSON.'
+            })
+
+        # Create product item
+        item = {
+            'product_id': product_id,
+            'name': name,
+            'category': category,
+            'price': Decimal(str(price)),
+            'description': description,
+            'specifications': specs,
+            'in_stock': stock_quantity > 0,
+            'stock_quantity': stock_quantity,
+            'rating': Decimal('0'),
+            'warranty': warranty,
+            'return_policy': return_policy,
+            'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+        table.put_item(Item=item)
+
+        return json.dumps({
+            'success': True,
+            'product_id': product_id,
+            'name': name,
+            'category': category,
+            'price': price,
+            'stock_quantity': stock_quantity,
+            'message': f'Product {product_id} ({name}) created successfully.'
+        })
+
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e),
+            'message': f'Error creating product {product_id}'
+        })
+
+
+@mcp.tool()
+def update_product(product_id: str, updates: str) -> str:
+    """
+    Update an existing product's information. Requires admin privileges.
+
+    Args:
+        product_id: Product ID to update (e.g., PROD-001)
+        updates: JSON string with fields to update (e.g., '{"name": "New Name", "description": "New desc", "price": 99.99}')
+                 Supported fields: name, description, price, category, specifications, warranty, return_policy, rating
+
+    Returns:
+        Confirmation of update with changed fields as JSON string
+    """
+    try:
+        table = get_dynamodb_table('products')
+
+        # Check product exists
+        existing = table.get_item(Key={'product_id': product_id})
+        if 'Item' not in existing:
+            return json.dumps({
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} not found.'
+            })
+
+        # Parse updates
+        try:
+            update_dict = json.loads(updates) if isinstance(updates, str) else updates
+        except json.JSONDecodeError:
+            return json.dumps({
+                'success': False,
+                'error': 'Invalid updates format. Please provide valid JSON.'
+            })
+
+        # Allowed fields for update
+        allowed_fields = {'name', 'description', 'price', 'category', 'specifications',
+                          'warranty', 'return_policy', 'rating'}
+        invalid_fields = set(update_dict.keys()) - allowed_fields
+        if invalid_fields:
+            return json.dumps({
+                'success': False,
+                'error': f'Cannot update fields: {", ".join(invalid_fields)}. Allowed: {", ".join(allowed_fields)}'
+            })
+
+        if not update_dict:
+            return json.dumps({
+                'success': False,
+                'error': 'No update fields provided.'
+            })
+
+        # Build update expression
+        update_parts = []
+        expr_names = {}
+        expr_values = {':updated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+        for field, value in update_dict.items():
+            safe_name = f'#{field}'
+            safe_value = f':{field}'
+            update_parts.append(f'{safe_name} = {safe_value}')
+            expr_names[safe_name] = field
+
+            if field == 'price':
+                expr_values[safe_value] = Decimal(str(value))
+            elif field == 'rating':
+                expr_values[safe_value] = Decimal(str(value))
+            elif field == 'specifications' and isinstance(value, str):
+                expr_values[safe_value] = json.loads(value)
+            else:
+                expr_values[safe_value] = value
+
+        update_parts.append('#updated_date = :updated_date')
+        expr_names['#updated_date'] = 'updated_date'
+
+        update_expression = 'SET ' + ', '.join(update_parts)
+
+        table.update_item(
+            Key={'product_id': product_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values
+        )
+
+        return json.dumps({
+            'success': True,
+            'product_id': product_id,
+            'updated_fields': list(update_dict.keys()),
+            'message': f'Product {product_id} updated successfully. Fields changed: {", ".join(update_dict.keys())}'
+        })
+
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e),
+            'message': f'Error updating product {product_id}'
+        })
+
+
+@mcp.tool()
+def delete_product(product_id: str) -> str:
+    """
+    Delete a product from the catalog. Requires admin privileges.
+
+    This performs a soft delete by setting the product status to 'discontinued'
+    and removing it from active inventory. The product record is retained for
+    order history purposes.
+
+    Args:
+        product_id: Product ID to delete (e.g., PROD-001)
+
+    Returns:
+        Confirmation of deletion as JSON string
+    """
+    try:
+        table = get_dynamodb_table('products')
+
+        # Check product exists
+        existing = table.get_item(Key={'product_id': product_id})
+        if 'Item' not in existing:
+            return json.dumps({
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} not found.'
+            })
+
+        product_name = existing['Item'].get('name', 'Unknown')
+
+        # Soft delete: mark as discontinued and zero out inventory
+        table.update_item(
+            Key={'product_id': product_id},
+            UpdateExpression='SET #status = :status, in_stock = :in_stock, stock_quantity = :qty, discontinued_date = :ddate, updated_date = :udate',
+            ExpressionAttributeNames={'#status': 'status'},
+            ExpressionAttributeValues={
+                ':status': 'discontinued',
+                ':in_stock': False,
+                ':qty': 0,
+                ':ddate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ':udate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        )
+
+        return json.dumps({
+            'success': True,
+            'product_id': product_id,
+            'name': product_name,
+            'action': 'soft_delete',
+            'message': f'Product {product_id} ({product_name}) has been discontinued and removed from active catalog.'
+        })
+
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e),
+            'message': f'Error deleting product {product_id}'
+        })
+
+
+@mcp.tool()
+def update_inventory(product_id: str, new_quantity: int, restock_date: Optional[str] = None) -> str:
+    """
+    Update inventory levels for a product. Requires admin privileges.
+
+    Args:
+        product_id: Product ID to update (e.g., PROD-001)
+        new_quantity: New stock quantity
+        restock_date: Optional expected restock date for out-of-stock items (format: YYYY-MM-DD)
+
+    Returns:
+        Updated inventory status as JSON string
+    """
+    try:
+        table = get_dynamodb_table('products')
+
+        # Check product exists
+        existing = table.get_item(Key={'product_id': product_id})
+        if 'Item' not in existing:
+            return json.dumps({
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} not found.'
+            })
+
+        if new_quantity < 0:
+            return json.dumps({
+                'success': False,
+                'error': 'Stock quantity cannot be negative.'
+            })
+
+        in_stock = new_quantity > 0
+
+        update_expr = 'SET stock_quantity = :qty, in_stock = :in_stock, updated_date = :udate'
+        expr_values = {
+            ':qty': new_quantity,
+            ':in_stock': in_stock,
+            ':udate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+        if restock_date:
+            update_expr += ', restock_date = :rdate'
+            expr_values[':rdate'] = restock_date
+        elif in_stock:
+            # Remove restock_date if item is back in stock
+            update_expr += ' REMOVE restock_date'
+
+        table.update_item(
+            Key={'product_id': product_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_values
+        )
+
+        result = {
+            'success': True,
+            'product_id': product_id,
+            'name': existing['Item'].get('name'),
+            'new_quantity': new_quantity,
+            'in_stock': in_stock,
+            'message': f'Inventory updated for {product_id}. New quantity: {new_quantity}.'
+        }
+
+        if restock_date and not in_stock:
+            result['restock_date'] = restock_date
+            result['message'] += f' Expected restock: {restock_date}.'
+
+        return json.dumps(result, default=str)
+
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e),
+            'message': f'Error updating inventory for {product_id}'
+        })
+
+
+@mcp.tool()
+def update_pricing(product_id: str, new_price: float, sale_price: Optional[float] = None, sale_end_date: Optional[str] = None) -> str:
+    """
+    Update pricing for a product, optionally setting a sale price. Requires admin privileges.
+
+    Args:
+        product_id: Product ID to update (e.g., PROD-001)
+        new_price: New regular price in USD
+        sale_price: Optional temporary sale price in USD
+        sale_end_date: Optional sale end date (format: YYYY-MM-DD), required if sale_price is set
+
+    Returns:
+        Updated pricing information as JSON string
+    """
+    try:
+        table = get_dynamodb_table('products')
+
+        # Check product exists
+        existing = table.get_item(Key={'product_id': product_id})
+        if 'Item' not in existing:
+            return json.dumps({
+                'success': False,
+                'product_id': product_id,
+                'message': f'Product {product_id} not found.'
+            })
+
+        if new_price <= 0:
+            return json.dumps({
+                'success': False,
+                'error': 'Price must be greater than zero.'
+            })
+
+        if sale_price is not None and sale_price >= new_price:
+            return json.dumps({
+                'success': False,
+                'error': f'Sale price (${sale_price}) must be less than regular price (${new_price}).'
+            })
+
+        old_price = float(existing['Item'].get('price', 0))
+
+        update_expr = 'SET price = :price, updated_date = :udate'
+        expr_values = {
+            ':price': Decimal(str(new_price)),
+            ':udate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+        if sale_price is not None:
+            if not sale_end_date:
+                return json.dumps({
+                    'success': False,
+                    'error': 'sale_end_date is required when setting a sale_price.'
+                })
+            update_expr += ', sale_price = :sprice, sale_end_date = :sdate'
+            expr_values[':sprice'] = Decimal(str(sale_price))
+            expr_values[':sdate'] = sale_end_date
+
+        table.update_item(
+            Key={'product_id': product_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_values
+        )
+
+        result = {
+            'success': True,
+            'product_id': product_id,
+            'name': existing['Item'].get('name'),
+            'old_price': old_price,
+            'new_price': new_price,
+            'message': f'Price updated for {product_id}. ${old_price} -> ${new_price}.'
+        }
+
+        if sale_price is not None:
+            result['sale_price'] = sale_price
+            result['sale_end_date'] = sale_end_date
+            discount_pct = round((1 - sale_price / new_price) * 100, 1)
+            result['message'] += f' Sale price: ${sale_price} ({discount_pct}% off) until {sale_end_date}.'
+
+        return json.dumps(result, default=str)
+
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e),
+            'message': f'Error updating pricing for {product_id}'
         })
 
 
