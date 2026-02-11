@@ -125,39 +125,45 @@ def strip_prefix(tool_name: str) -> str:
 def create_sigv4_mcp_client(gateway_url: str, region: str, bearer_token: str = None):
     """
     Create an MCP client that connects to AgentCore Gateway.
-    Uses SigV4 signing for authentication.
+    Uses Bearer JWT for CUSTOM_JWT gateways, or SigV4 for AWS_IAM gateways.
     """
-    import httpx
-    from botocore.auth import SigV4Auth
-    from botocore.awsrequest import AWSRequest
     from mcp.client.streamable_http import streamablehttp_client
 
-    session = boto3.Session(region_name=region)
-    credentials = session.get_credentials().get_frozen_credentials()
-
-    class SigV4Auth_HTTPX(httpx.Auth):
-        def auth_flow(self, request: httpx.Request):
-            headers = dict(request.headers)
-            headers.pop('connection', None)
-            aws_req = AWSRequest(
-                method=request.method,
-                url=str(request.url),
-                data=request.content,
-                headers=headers
+    if bearer_token:
+        # CUSTOM_JWT gateway: use Bearer token only (SigV4 would overwrite Authorization header)
+        def transport():
+            return streamablehttp_client(
+                url=gateway_url,
+                headers={'Authorization': f'Bearer {bearer_token}'}
             )
-            SigV4Auth(credentials, 'bedrock-agentcore', region).add_auth(aws_req)
-            request.headers.update(dict(aws_req.headers))
-            yield request
+    else:
+        # AWS_IAM gateway: use SigV4 signing
+        import httpx
+        from botocore.auth import SigV4Auth
+        from botocore.awsrequest import AWSRequest
 
-    def transport():
-        extra_headers = {}
-        if bearer_token:
-            extra_headers['Authorization'] = f'Bearer {bearer_token}'
-        return streamablehttp_client(
-            url=gateway_url,
-            auth=SigV4Auth_HTTPX(),
-            headers=extra_headers
-        )
+        session = boto3.Session(region_name=region)
+        credentials = session.get_credentials().get_frozen_credentials()
+
+        class SigV4Auth_HTTPX(httpx.Auth):
+            def auth_flow(self, request: httpx.Request):
+                headers = dict(request.headers)
+                headers.pop('connection', None)
+                aws_req = AWSRequest(
+                    method=request.method,
+                    url=str(request.url),
+                    data=request.content,
+                    headers=headers
+                )
+                SigV4Auth(credentials, 'bedrock-agentcore', region).add_auth(aws_req)
+                request.headers.update(dict(aws_req.headers))
+                yield request
+
+        def transport():
+            return streamablehttp_client(
+                url=gateway_url,
+                auth=SigV4Auth_HTTPX()
+            )
 
     return MCPClient(transport)
 
@@ -191,7 +197,8 @@ def invoke(payload=None, **kwargs):
         return {"status": "warmed"}
 
     prompt = payload.get('prompt', '')
-    bearer_token = payload.get('bearer_token', '')
+    bearer_token = payload.get('bearer_token', '')  # ID token for role extraction
+    access_token = payload.get('access_token', '')   # Access token for Gateway auth
     session_id = payload.get('session_id', 'default')
 
     if not prompt:
@@ -207,7 +214,10 @@ def invoke(payload=None, **kwargs):
     if not GATEWAY_URL:
         return {"error": "GATEWAY_URL not configured"}
 
-    mcp_client = create_sigv4_mcp_client(GATEWAY_URL, AGENT_REGION, bearer_token)
+    # Use access_token for Gateway auth (has client_id claim for CUSTOM_JWT validation)
+    # Fall back to bearer_token (ID token) if no access_token provided
+    gateway_token = access_token or bearer_token
+    mcp_client = create_sigv4_mcp_client(GATEWAY_URL, AGENT_REGION, gateway_token)
 
     try:
         mcp_client.__enter__()
@@ -238,11 +248,15 @@ def invoke(payload=None, **kwargs):
         response = agent(prompt)
         response_text = response.message['content'][0]['text']
 
-        # Collect tool usage metadata
+        # Collect tool usage metadata from full conversation history
+        # Strands uses 'toolUse' key (camelCase) in ContentBlock TypedDict
         tools_used = []
-        for content_block in response.message.get('content', []):
-            if content_block.get('type') == 'tool_use':
-                tools_used.append(strip_prefix(content_block.get('name', '')))
+        for msg in agent.messages:
+            if msg.get('role') == 'assistant':
+                for content_block in msg.get('content', []):
+                    if 'toolUse' in content_block:
+                        tool_name = content_block['toolUse'].get('name', '')
+                        tools_used.append(strip_prefix(tool_name))
 
         return {
             "status": "success",

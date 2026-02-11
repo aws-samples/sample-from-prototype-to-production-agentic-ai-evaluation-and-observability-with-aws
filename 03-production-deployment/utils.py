@@ -214,20 +214,31 @@ def get_or_create_user_app_client(
     cognito_client, user_pool_id: str, client_name: str
 ) -> str:
     """Create Cognito app client for user login (USER_PASSWORD_AUTH)."""
+    required_auth_flows = [
+        'ALLOW_USER_PASSWORD_AUTH',
+        'ALLOW_ADMIN_USER_PASSWORD_AUTH',
+        'ALLOW_REFRESH_TOKEN_AUTH'
+    ]
+
     response = cognito_client.list_user_pool_clients(UserPoolId=user_pool_id, MaxResults=60)
     for client in response['UserPoolClients']:
         if client['ClientName'] == client_name:
             print(f"Found existing user app client: {client['ClientId']}")
+            # Ensure required auth flows are enabled
+            cognito_client.update_user_pool_client(
+                UserPoolId=user_pool_id,
+                ClientId=client['ClientId'],
+                ClientName=client_name,
+                ExplicitAuthFlows=required_auth_flows
+            )
+            print(f"Updated auth flows on user app client")
             return client['ClientId']
 
     response = cognito_client.create_user_pool_client(
         UserPoolId=user_pool_id,
         ClientName=client_name,
         GenerateSecret=False,
-        ExplicitAuthFlows=[
-            'ALLOW_USER_PASSWORD_AUTH',
-            'ALLOW_REFRESH_TOKEN_AUTH'
-        ]
+        ExplicitAuthFlows=required_auth_flows
     )
     print(f"Created user app client: {response['UserPoolClient']['ClientId']}")
     return response['UserPoolClient']['ClientId']
@@ -378,8 +389,23 @@ def create_agentcore_gateway_role(iam_client, role_name: str, lambda_arns: list)
         return {'Role': role_response['Role']}
 
     except iam_client.exceptions.EntityAlreadyExistsException:
-        print(f"Role {role_name} already exists, retrieving...")
+        print(f"Role {role_name} already exists, updating policy...")
         role = iam_client.get_role(RoleName=role_name)
+
+        # Update the Lambda invoke policy with the current set of Lambda ARNs
+        iam_client.put_role_policy(
+            RoleName=role_name,
+            PolicyName=f"{role_name}-lambda-invoke-policy",
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": "lambda:InvokeFunction",
+                    "Resource": lambda_arns
+                }]
+            })
+        )
+        print(f"Updated Lambda invoke policy on Gateway role")
         return {'Role': role['Role']}
 
 
@@ -618,8 +644,25 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
         return {'Role': role_response['Role'], 'exit_code': 0}
 
     except iam_client.exceptions.EntityAlreadyExistsException:
-        print(f"Role {role_name} already exists, retrieving...")
+        print(f"Role {role_name} already exists, updating policies...")
         role = iam_client.get_role(RoleName=role_name)
+
+        # Ensure gateway policy is up to date
+        if gateway_arn:
+            iam_client.put_role_policy(
+                RoleName=role_name,
+                PolicyName=f"{role_name}-gateway-policy",
+                PolicyDocument=json.dumps({
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Action": "bedrock-agentcore:InvokeGateway",
+                        "Resource": gateway_arn
+                    }]
+                })
+            )
+            print(f"Updated gateway policy on runtime role")
+
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:
         print(f"Error creating role: {e}")
@@ -681,7 +724,7 @@ def create_agent_runtime(
         print(f"Runtime '{runtime_name}' already exists, retrieving...")
         try:
             response = agentcore_client.list_agent_runtimes()
-            for rt in response.get('items', []):
+            for rt in response.get('agentRuntimes', response.get('items', [])):
                 if rt.get('agentRuntimeName') == runtime_name:
                     details = agentcore_client.get_agent_runtime(agentRuntimeId=rt['agentRuntimeId'])
                     return {
@@ -739,14 +782,59 @@ def invoke_agent_runtime(
     try:
         response = agentcore_runtime_client.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            sessionId=session_id,
+            runtimeSessionId=session_id,
             payload=json.dumps(payload).encode('utf-8')
         )
-        result = b''
-        for event in response.get('body', []):
-            if 'chunk' in event:
-                result += event['chunk']['bytes']
-        return json.loads(result.decode('utf-8'))
+        content_type = response.get('contentType', '')
+
+        if 'text/event-stream' in content_type:
+            # Handle streaming response
+            content = []
+            for line in response['response'].iter_lines(chunk_size=10):
+                if line:
+                    line = line.decode('utf-8') if isinstance(line, bytes) else line
+                    if line.startswith('data: '):
+                        line = line[6:]
+                    content.append(line)
+            full_response = '\n'.join(content)
+            # Try to parse as JSON, otherwise return as text
+            try:
+                return json.loads(full_response)
+            except (json.JSONDecodeError, ValueError):
+                return {'response': full_response, 'status': 'success'}
+
+        elif content_type == 'application/json':
+            # Handle standard JSON response
+            content = []
+            for chunk in response.get('response', []):
+                content.append(chunk.decode('utf-8') if isinstance(chunk, bytes) else str(chunk))
+            return json.loads(''.join(content))
+
+        else:
+            # Handle other/unknown content types - read response body
+            content = []
+            resp = response.get('response', response.get('body', []))
+            if hasattr(resp, 'iter_lines'):
+                for line in resp.iter_lines(chunk_size=10):
+                    if line:
+                        line = line.decode('utf-8') if isinstance(line, bytes) else line
+                        if line.startswith('data: '):
+                            line = line[6:]
+                        content.append(line)
+            elif hasattr(resp, '__iter__'):
+                for chunk in resp:
+                    if isinstance(chunk, bytes):
+                        content.append(chunk.decode('utf-8'))
+                    elif isinstance(chunk, dict) and 'chunk' in chunk:
+                        content.append(chunk['chunk']['bytes'].decode('utf-8'))
+                    else:
+                        content.append(str(chunk))
+            full_response = '\n'.join(content)
+            try:
+                return json.loads(full_response)
+            except (json.JSONDecodeError, ValueError):
+                return {'response': full_response, 'status': 'success'}
+
     except Exception as e:
         print(f"Error invoking runtime: {e}")
         return {'error': str(e)}

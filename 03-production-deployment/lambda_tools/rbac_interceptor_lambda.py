@@ -100,7 +100,7 @@ def lambda_handler(event, context):
         # -------------------------------------------------------------------
         # RESPONSE interception: filter tools/list
         # -------------------------------------------------------------------
-        if 'gatewayResponse' in mcp_data:
+        if 'gatewayResponse' in mcp_data and mcp_data['gatewayResponse'] is not None:
             gateway_response = mcp_data['gatewayResponse']
             gateway_request = mcp_data.get('gatewayRequest', {})
 
@@ -131,7 +131,7 @@ def lambda_handler(event, context):
                     'interceptorOutputVersion': '1.0',
                     'mcp': {
                         'transformedGatewayResponse': {
-                            'headers': gateway_response.get('headers', {}),
+                            'statusCode': gateway_response.get('statusCode', 200),
                             'body': {
                                 'jsonrpc': '2.0',
                                 'result': {'tools': filtered_tools},
@@ -146,7 +146,7 @@ def lambda_handler(event, context):
                 'interceptorOutputVersion': '1.0',
                 'mcp': {
                     'transformedGatewayResponse': {
-                        'headers': gateway_response.get('headers', {}),
+                        'statusCode': gateway_response.get('statusCode', 200),
                         'body': response_body
                     }
                 }
