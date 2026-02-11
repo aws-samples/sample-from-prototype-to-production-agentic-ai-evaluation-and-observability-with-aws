@@ -49,7 +49,7 @@ def get_user_token(cognito_client, user_pool_id, client_id, email, password):
 # AGENT INVOCATION
 # ============================================================================
 
-def invoke_agent(config, prompt, bearer_token, session_id):
+def invoke_agent(config, prompt, bearer_token, access_token, session_id):
     """Invoke the Product Catalog Agent via AgentCore Runtime."""
     try:
         region = config.get('region', 'us-west-2')
@@ -60,21 +60,35 @@ def invoke_agent(config, prompt, bearer_token, session_id):
         payload = {
             'prompt': prompt,
             'bearer_token': bearer_token,
+            'access_token': access_token,
             'session_id': session_id
         }
 
         response = client.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            sessionId=session_id,
+            runtimeSessionId=session_id,
             payload=json.dumps(payload).encode('utf-8')
         )
 
-        result = b''
-        for event in response.get('body', []):
-            if 'chunk' in event:
-                result += event['chunk']['bytes']
+        # Read streaming or JSON response
+        content = []
+        resp = response.get('response', [])
+        if hasattr(resp, 'iter_lines'):
+            for line in resp.iter_lines(chunk_size=10):
+                if line:
+                    line = line.decode('utf-8') if isinstance(line, bytes) else line
+                    if line.startswith('data: '):
+                        line = line[6:]
+                    content.append(line)
+        elif hasattr(resp, '__iter__'):
+            for chunk in resp:
+                if isinstance(chunk, bytes):
+                    content.append(chunk.decode('utf-8'))
+                else:
+                    content.append(str(chunk))
 
-        return json.loads(result.decode('utf-8'))
+        full_response = '\n'.join(content)
+        return json.loads(full_response)
     except Exception as e:
         return {'status': 'error', 'error': str(e)}
 
@@ -124,6 +138,8 @@ if 'user_role' not in st.session_state:
     st.session_state.user_role = None
 if 'bearer_token' not in st.session_state:
     st.session_state.bearer_token = ''
+if 'access_token' not in st.session_state:
+    st.session_state.access_token = ''
 
 # Sidebar - Login
 with st.sidebar:
@@ -165,6 +181,7 @@ with st.sidebar:
                 st.session_state.logged_in = True
                 st.session_state.user_role = user['role']
                 st.session_state.bearer_token = tokens['id_token']
+                st.session_state.access_token = tokens['access_token']
                 st.session_state.messages = []
                 st.rerun()
     else:
@@ -184,6 +201,7 @@ with st.sidebar:
             st.session_state.logged_in = False
             st.session_state.user_role = None
             st.session_state.bearer_token = ''
+            st.session_state.access_token = ''
             st.session_state.messages = []
             st.rerun()
 
@@ -221,11 +239,14 @@ for msg in st.session_state.messages:
             with st.expander("Response metadata"):
                 st.json(meta)
 
-# Handle pending query from sidebar
+# Always render chat_input so the input box is visible
+chat_prompt = st.chat_input("Ask about products...")
+
+# Handle pending query from sidebar example buttons
 if 'pending_query' in st.session_state:
     prompt = st.session_state.pop('pending_query')
 else:
-    prompt = st.chat_input("Ask about products...")
+    prompt = chat_prompt
 
 if prompt:
     st.session_state.messages.append({'role': 'user', 'content': prompt})
@@ -237,6 +258,7 @@ if prompt:
             result = invoke_agent(
                 config, prompt,
                 st.session_state.bearer_token,
+                st.session_state.access_token,
                 st.session_state.session_id
             )
 
@@ -245,6 +267,10 @@ if prompt:
             st.markdown(response_text)
 
             metadata = result.get('metadata', {})
+            if metadata:
+                with st.expander("Response metadata"):
+                    st.json(metadata)
+
             st.session_state.messages.append({
                 'role': 'assistant',
                 'content': response_text,
