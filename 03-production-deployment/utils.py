@@ -640,6 +640,27 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
             })
         )
 
+        # X-Ray permissions for OTEL trace export (observability)
+        iam_client.put_role_policy(
+            RoleName=role_name,
+            PolicyName=f"{role_name}-xray-policy",
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                        "xray:PutTraceSegments",
+                        "xray:PutTelemetryRecords",
+                        "xray:GetSamplingRules",
+                        "xray:GetSamplingTargets",
+                        "xray:GetSamplingStatisticSummaries"
+                    ],
+                    "Resource": "*"
+                }]
+            })
+        )
+        print(f"Attached X-Ray tracing policy")
+
         time.sleep(10)
         return {'Role': role_response['Role'], 'exit_code': 0}
 
@@ -662,6 +683,27 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
                 })
             )
             print(f"Updated gateway policy on runtime role")
+
+        # Ensure X-Ray policy is attached
+        iam_client.put_role_policy(
+            RoleName=role_name,
+            PolicyName=f"{role_name}-xray-policy",
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                        "xray:PutTraceSegments",
+                        "xray:PutTelemetryRecords",
+                        "xray:GetSamplingRules",
+                        "xray:GetSamplingTargets",
+                        "xray:GetSamplingStatisticSummaries"
+                    ],
+                    "Resource": "*"
+                }]
+            })
+        )
+        print(f"Ensured X-Ray tracing policy on runtime role")
 
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:

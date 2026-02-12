@@ -1,10 +1,21 @@
-strands-agents>=0.1.0
+# Agent framework with OpenTelemetry support
+strands-agents[otel]>=0.1.0
 strands-agents-tools>=0.1.0
+
+# AgentCore Runtime SDK (provides BedrockAgentCoreApp with automatic OTEL)
 bedrock-agentcore>=1.1.0
+
+# AWS SDK
 boto3>=1.35.0
+
+# MCP client for Gateway communication
 mcp>=1.0.0
+
+# HTTP
 uvicorn[standard]
 fastapi
 pydantic
 httpx
-aws-opentelemetry-distro>=0.10.0
+
+# AWS OpenTelemetry Distribution - REQUIRED for CloudWatch GenAI Observability
+aws-opentelemetry-distro~=0.12.1
