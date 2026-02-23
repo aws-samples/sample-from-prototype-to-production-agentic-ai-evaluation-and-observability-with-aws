@@ -268,7 +268,8 @@ class ProductCatalogAgent:
             name="ProductCatalogAgent",
             model=model,
             system_prompt=system_prompt,
-            tools=role_tools
+            tools=role_tools,
+            callback_handler=None # disable the default console output
         )
 
     def __call__(self, message: str) -> str:
