@@ -17,8 +17,9 @@ def check_dynamodb_tables(dynamodb_client, tables):
     for table_name in tables:
         try:
             response = dynamodb_client.describe_table(TableName=table_name)
-            item_count = response['Table']['ItemCount']
             status = response['Table']['TableStatus']
+            scan_response = dynamodb_client.scan(TableName=table_name, Select='COUNT')
+            item_count = scan_response['Count']
             results[table_name] = {
                 'exists': True,
                 'status': status,
