@@ -197,12 +197,19 @@ def get_or_create_cognito_app_client(
             print(f"Found existing app client: {client['ClientId']}")
             return client['ClientId'], details['UserPoolClient'].get('ClientSecret')
 
+    # AllowedOAuthScopes requires strings in "resource_server_id/scope_name" format.
+    # Accept either pre-formatted strings or the dicts used by create_resource_server.
+    scope_strings = [
+        f"{resource_server_id}/{s['ScopeName']}" if isinstance(s, dict) else s
+        for s in scopes
+    ]
+
     response = cognito_client.create_user_pool_client(
         UserPoolId=user_pool_id,
         ClientName=client_name,
         GenerateSecret=True,
         AllowedOAuthFlows=['client_credentials'],
-        AllowedOAuthScopes=scopes,
+        AllowedOAuthScopes=scope_strings,
         AllowedOAuthFlowsUserPoolClient=True,
         SupportedIdentityProviders=['COGNITO']
     )
