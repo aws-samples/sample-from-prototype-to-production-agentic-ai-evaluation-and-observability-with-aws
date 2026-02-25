@@ -31,13 +31,13 @@ logging.basicConfig(level=logging.INFO)
 # ---------------------------------------------------------------------------
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "")
 AGENT_REGION = os.environ.get("AGENT_REGION", os.environ.get("AWS_REGION", "us-west-2"))
-MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-haiku-4-5-20251001-v1:0")
+MODEL_ID = os.environ.get("MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
 
 # ---------------------------------------------------------------------------
 # RBAC constants (same as Module 01)
 # ---------------------------------------------------------------------------
 CUSTOMER_TOOLS = [
-    "search_products",
+    "search",
     "get_product_details",
     "check_inventory",
     "get_product_recommendations",
@@ -211,7 +211,7 @@ def invoke(payload=None, **kwargs):
     role = "customer"  # Default to least privilege
     if bearer_token:
         role = get_role_from_jwt(bearer_token)
-    logger.info(f"User role: {role} | Session: {session_id}")
+    logger.info(f"User role: {role} | Session: {session_id} | Prompt: {prompt[:100]}...")
 
     # Connect to Gateway MCP tools
     if not GATEWAY_URL:
@@ -228,9 +228,11 @@ def invoke(payload=None, **kwargs):
 
         # Filter tools by role (application-level RBAC - defense in depth)
         role_tools = get_tools_for_role(all_tools, role)
+        tool_names = [strip_prefix(t.tool_name) for t in role_tools]
         logger.info(
             f"Tools available for {role}: {len(role_tools)} / {len(all_tools)} total"
         )
+        logger.info(f"Tool names: {tool_names}")
 
         # Select system prompt based on role
         system_prompt = (
@@ -238,18 +240,23 @@ def invoke(payload=None, **kwargs):
         )
 
         # Create agent
+        logger.info(f"Initializing model: {MODEL_ID}")
         model = BedrockModel(
             model_id=MODEL_ID,
             region_name=AGENT_REGION,
             temperature=0.3,
             max_tokens=1500,
         )
+        logger.info(f"Model initialized successfully")
 
         agent = Agent(model=model, tools=role_tools, system_prompt=system_prompt)
+        logger.info(f"Created new agent instance - no conversation history loaded")
 
         # Invoke agent
+        logger.info(f"Invoking agent with prompt length: {len(prompt)} chars")
         response = agent(prompt)
         response_text = response.message["content"][0]["text"]
+        logger.info(f"Agent response received - length: {len(response_text)} chars")
 
         # Collect tool usage metadata from full conversation history
         # Strands uses 'toolUse' key (camelCase) in ContentBlock TypedDict
@@ -259,7 +266,9 @@ def invoke(payload=None, **kwargs):
                 for content_block in msg.get("content", []):
                     if "toolUse" in content_block:
                         tool_name = content_block["toolUse"].get("name", "")
+                        tool_input = content_block["toolUse"].get("input", {})
                         tools_used.append(strip_prefix(tool_name))
+                        logger.info(f"Tool invoked: {strip_prefix(tool_name)} with params: {tool_input}")
 
         return {
             "status": "success",
@@ -274,8 +283,17 @@ def invoke(payload=None, **kwargs):
         }
 
     except Exception as e:
-        logger.error(f"Agent error: {e}")
-        return {"status": "error", "error": str(e)}
+        logger.error(
+            f"Agent error: {type(e).__name__}: {str(e)}",
+            extra={
+                "error_type": type(e).__name__,
+                "role": role,
+                "session_id": session_id,
+                "model_id": MODEL_ID,
+                "prompt_length": len(prompt)
+            }
+        )
+        return {"status": "error", "error": str(e), "error_type": type(e).__name__}
     finally:
         try:
             mcp_client.__exit__(None, None, None)

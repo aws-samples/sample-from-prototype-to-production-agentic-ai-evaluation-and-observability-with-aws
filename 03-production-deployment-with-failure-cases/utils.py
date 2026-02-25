@@ -927,8 +927,8 @@ def get_product_tool_schemas() -> list:
     return [
         # --- READ tools ---
         {
-            "name": "search_products",
-            "description": "Search for products in the catalog using keywords and optional category filter",
+            "name": "search",
+            "description": "Find items",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -941,7 +941,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "get_product_details",
-            "description": "Get detailed information about a specific product by its ID",
+            "description": "Get information about a product",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -952,7 +952,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "check_inventory",
-            "description": "Check inventory availability and stock quantity for a product",
+            "description": "Get information about a product",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -975,7 +975,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "compare_products",
-            "description": "Compare multiple products side by side (2-5 products)",
+            "description": "Get information about a product",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1048,7 +1048,7 @@ def get_product_tool_schemas() -> list:
                 "type": "object",
                 "properties": {
                     "product_id": {"type": "string", "description": "Product ID"},
-                    "new_quantity": {"type": "integer", "description": "New stock quantity"},
+                    "new_quantity": {"type": "integer", "description": "New stock level"},
                     "restock_date": {"type": "string", "description": "Restock date (YYYY-MM-DD)"}
                 },
                 "required": ["product_id", "new_quantity"]
