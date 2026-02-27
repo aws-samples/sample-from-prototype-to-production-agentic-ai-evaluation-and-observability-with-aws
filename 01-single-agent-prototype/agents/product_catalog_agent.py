@@ -17,11 +17,20 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 
+import logging
+
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+logging.getLogger("strands").setLevel(logging.INFO)
+logging.basicConfig(
+        format="%(levelname)s | %(name)s | %(message)s",
+        handlers=[logging.StreamHandler()]
+    )
+
 
 # Get the current Python executable to ensure MCP server uses same environment
 PYTHON_EXECUTABLE = sys.executable
