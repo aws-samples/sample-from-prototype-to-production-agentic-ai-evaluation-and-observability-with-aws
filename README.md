@@ -247,17 +247,20 @@ pip install strands-agents strands-agents-evals boto3 pandas streamlit
 
 ## Quick Start
 
-```bash
-# 1. Clone and setup
-cd ecommerce-agent-workshop
-pip install -r requirements.txt
+1. **Install uv** (if not already installed)
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
 
-# 2. Verify AWS access
-aws sts get-caller-identity
+2. **Install Python dependencies**
+   ```bash
+   uv sync
+   ```
 
-# 3. Run modules in order
-# Module 1 → Module 2 → Module 3 → Module 4 → Module 5
-```
+3. **Run modules in order**
+  ```
+  # Module 0 → Module 1 → Module 2 → Module 3 → Module 4 → Module 5
+  ```
 
 ---
 
