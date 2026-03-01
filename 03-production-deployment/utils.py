@@ -487,7 +487,39 @@ def create_lambda_gateway_target(
     gateway_client, gateway_id: str, target_name: str,
     lambda_arn: str, tool_schemas: list, description: str
 ) -> dict:
-    """Create a Lambda target in AgentCore Gateway."""
+    """Create a Lambda target in AgentCore Gateway.
+
+    Waits for the Gateway to reach READY/ACTIVE status before creating the
+    target, since the CreateGatewayTarget API rejects requests while the
+    Gateway is still in CREATING status.
+    """
+    import time as _time
+
+    # Wait for Gateway to be ready before creating target
+    max_wait = 120  # seconds
+    poll_interval = 10
+    waited = 0
+    while waited < max_wait:
+        try:
+            gw = gateway_client.get_gateway(gatewayIdentifier=gateway_id)
+            status = gw.get('status', 'UNKNOWN')
+            if status in ('READY', 'ACTIVE', 'UPDATE_SUCCESSFUL'):
+                break
+            if status in ('FAILED', 'DELETE_IN_PROGRESS', 'DELETED'):
+                print(f"Gateway is in terminal status: {status}")
+                return None
+            print(f"  Waiting for Gateway to be ready (status: {status})...")
+            _time.sleep(poll_interval)
+            waited += poll_interval
+        except Exception as e:
+            print(f"  Error checking gateway status: {e}")
+            _time.sleep(poll_interval)
+            waited += poll_interval
+
+    if waited >= max_wait:
+        print(f"Gateway did not reach READY status within {max_wait}s")
+        return None
+
     target_config = {
         "mcp": {
             "lambda": {
@@ -506,7 +538,32 @@ def create_lambda_gateway_target(
             targetConfiguration=target_config,
             credentialProviderConfigurations=credential_config
         )
-        print(f"Created Gateway target: {target_name}")
+        target_id = response.get('targetId')
+        print(f"Created Gateway target: {target_name} (id: {target_id})")
+
+        # Wait for target to be ready
+        if target_id:
+            target_waited = 0
+            while target_waited < max_wait:
+                try:
+                    t = gateway_client.get_gateway_target(
+                        gatewayIdentifier=gateway_id,
+                        targetIdentifier=target_id
+                    )
+                    t_status = t.get('status', 'UNKNOWN')
+                    if t_status in ('READY', 'ACTIVE', 'UPDATE_SUCCESSFUL'):
+                        print(f"Gateway target is ready")
+                        break
+                    if t_status in ('FAILED',):
+                        print(f"Gateway target failed: {t_status}")
+                        break
+                    print(f"  Waiting for target to be ready (status: {t_status})...")
+                    _time.sleep(poll_interval)
+                    target_waited += poll_interval
+                except Exception:
+                    _time.sleep(poll_interval)
+                    target_waited += poll_interval
+
         return response
     except gateway_client.exceptions.ConflictException:
         print(f"Target '{target_name}' already exists, retrieving...")
