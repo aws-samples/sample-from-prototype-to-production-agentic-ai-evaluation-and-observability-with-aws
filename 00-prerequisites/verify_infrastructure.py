@@ -36,21 +36,6 @@ def check_dynamodb_tables(dynamodb_client, tables):
     return results
 
 
-def check_bedrock_kb(bedrock_agent_client, kb_name_prefix):
-    """Verify Bedrock Knowledge Base exists"""
-    try:
-        response = bedrock_agent_client.list_knowledge_bases()
-        for kb in response.get('knowledgeBaseSummaries', []):
-            if kb_name_prefix in kb['name']:
-                print(f"  ✅ Knowledge Base: {kb['name']} ({kb['status']})")
-                return {'exists': True, 'kb_id': kb['knowledgeBaseId'], 'status': kb['status']}
-        print(f"  ❌ Knowledge Base with prefix '{kb_name_prefix}' not found")
-        return {'exists': False, 'error': 'KB not found'}
-    except ClientError as e:
-        print(f"  ❌ Knowledge Base check failed: {e}")
-        return {'exists': False, 'error': str(e)}
-
-
 def check_bedrock_models(bedrock_client, model_ids):
     """Verify Bedrock model access"""
     results = {}

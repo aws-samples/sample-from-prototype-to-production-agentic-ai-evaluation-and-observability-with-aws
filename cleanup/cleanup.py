@@ -6,8 +6,6 @@ Run this after completing all modules.
 """
 
 import boto3
-import json
-import time
 import sys
 
 def get_region():
@@ -34,40 +32,15 @@ def cleanup_dynamodb_tables(region):
         except Exception as e:
             print(f"   Error deleting {table_name}: {e}")
 
-def cleanup_knowledge_base(region):
-    """Delete Bedrock Knowledge Base"""
-    bedrock_agent = boto3.client('bedrock-agent', region_name=region)
-    ssm = boto3.client('ssm', region_name=region)
-
-    print("\n2. Cleaning up Bedrock Knowledge Base...")
-
-    # Get KB ID from SSM
-    try:
-        response = ssm.get_parameter(Name='/ecommerce-workshop/knowledge-base-id')
-        kb_id = response['Parameter']['Value']
-
-        # Delete Knowledge Base
-        bedrock_agent.delete_knowledge_base(knowledgeBaseId=kb_id)
-        print(f"   Deleted Knowledge Base: {kb_id}")
-
-        # Delete SSM parameter
-        ssm.delete_parameter(Name='/ecommerce-workshop/knowledge-base-id')
-        print("   Deleted SSM parameter")
-
-    except ssm.exceptions.ParameterNotFound:
-        print("   Knowledge Base ID not found in SSM (skipping)")
-    except Exception as e:
-        print(f"   Error: {e}")
-
 def cleanup_s3_bucket(region):
     """Delete workshop S3 bucket"""
     s3 = boto3.client('s3', region_name=region)
     sts = boto3.client('sts')
     account_id = sts.get_caller_identity()['Account']
 
-    bucket_name = f"ecommerce-workshop-kb-{account_id}-{region}"
+    bucket_name = f"ecommerce-workshop-{account_id}-{region}"
 
-    print("\n3. Cleaning up S3 bucket...")
+    print("\n2. Cleaning up S3 bucket...")
 
     try:
         # First, delete all objects
@@ -89,7 +62,7 @@ def cleanup_s3_bucket(region):
 def cleanup_agentcore_runtime(region):
     """Delete AgentCore Runtime deployment"""
 
-    print("\n4. Cleaning up AgentCore Runtime...")
+    print("\n3. Cleaning up AgentCore Runtime...")
 
     try:
         from bedrock_agentcore_starter_toolkit import Runtime
@@ -112,7 +85,7 @@ def cleanup_iam_role(region):
 
     role_name = 'AgentCore-ecommerce-customer-service-role'
 
-    print("\n5. Cleaning up IAM role...")
+    print("\n4. Cleaning up IAM role...")
 
     try:
         # Delete inline policies
@@ -134,7 +107,7 @@ def cleanup_cloudwatch_logs(region):
     """Delete workshop CloudWatch log groups"""
     logs = boto3.client('logs', region_name=region)
 
-    print("\n6. Cleaning up CloudWatch log groups...")
+    print("\n5. Cleaning up CloudWatch log groups...")
 
     prefixes = [
         '/aws/bedrock-agentcore/ecommerce',
@@ -155,7 +128,7 @@ def cleanup_ecr_repository(region):
     """Delete workshop ECR repository"""
     ecr = boto3.client('ecr', region_name=region)
 
-    print("\n7. Cleaning up ECR repository...")
+    print("\n6. Cleaning up ECR repository...")
 
     repo_name = 'ecommerce-customer-service'
 
@@ -197,7 +170,6 @@ def main():
 
     # Run cleanup in order (dependent resources first)
     cleanup_agentcore_runtime(region)
-    cleanup_knowledge_base(region)
     cleanup_dynamodb_tables(region)
     cleanup_s3_bucket(region)
     cleanup_ecr_repository(region)

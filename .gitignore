@@ -71,6 +71,7 @@ coverage.xml
 02-evaluation-baseline/.deepeval/
 02-evaluation-baseline/deepeval_results.json
 03-production-deployment/streamlit_app/gateway_config.json
+03-production-deployment/streamlit_app/agent_config.json
 
 # MacOS
 .DS_Store

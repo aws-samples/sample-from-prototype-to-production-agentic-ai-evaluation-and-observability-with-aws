@@ -156,24 +156,24 @@ Deploy agents to AWS with full observability:
 - Deploy with auto-instrumented OTEL tracing
 - Verify deployment with test invocations
 
-### Module 4: Online Observability (25 min)
+### Module 4: Online Evaluation & Observability (25 min)
 **Directory**: `04-online-eval-observability/`
 
-Monitor agents in production:
-- View OTEL traces in CloudWatch
-- Analyze agent behavior patterns
-- Build a Streamlit dashboard for real-time monitoring
-- Understand trace structure and tool call visibility
+Monitor and evaluate agents in production:
+- Configure online evaluation with built-in and custom evaluators
+- Explore OTEL traces in CloudWatch (span flow, tool calls, latency)
+- Build a CloudWatch custom dashboard as a "single pane of glass"
+- Run on-demand evaluation for specific traces
 
 ### Module 5: Production Batch Evaluation (30 min)
 **Directory**: `05-production-batch-evaluation/`
 
 Evaluate production traffic at scale:
 - Export OTEL traces from agent runtime logs
-- Extract actual tool calls from trace events
+- Classify tool calls by category (READ vs WRITE)
 - Run batch evaluation with the same evaluators from Module 2
-- Store results to S3 and CloudWatch metrics
-- Identify trends and regression patterns
+- Detect drift by comparing production scores against Module 2 baselines
+- Close the feedback loop: production failures become new offline test cases
 
 ---
 
@@ -271,8 +271,8 @@ After completing this workshop, you'll understand:
 1. **Evaluation is not optional** - Systematic testing prevents production failures
 2. **Observability enables improvement** - You can't fix what you can't see
 3. **AgentCore simplifies operations** - Focus on agent logic, not infrastructure
-4. **Tool calls reveal routing** - OTEL traces show exactly what agents do
-5. **Batch evaluation scales** - Evaluate thousands of traces efficiently
+4. **OTEL traces reveal behavior** - See exactly which tools agents call and why
+5. **Batch evaluation closes the loop** - Drift detection and feedback from production back to offline testing
 
 
 ---

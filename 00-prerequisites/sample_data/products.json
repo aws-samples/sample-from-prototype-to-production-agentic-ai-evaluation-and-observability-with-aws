@@ -1,6 +1,5 @@
 {
-  "description": "Product catalog for E-Commerce Customer Service Workshop - to be ingested into Bedrock Knowledge Base",
-  "kb_name": "ecommerce-workshop-products-kb",
+  "description": "Product catalog for E-Commerce Agent Evaluation & Observability Workshop",
   "products": [
     {
       "product_id": "PROD-001",

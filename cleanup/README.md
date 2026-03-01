@@ -18,19 +18,16 @@ The cleanup script will delete:
    - ecommerce-workshop-accounts
    - ecommerce-workshop-products
 
-2. **Bedrock Knowledge Base**
-   - Product catalog knowledge base
-   - Associated S3 bucket
-
-3. **AgentCore Resources**
+2. **AgentCore Resources**
    - Runtime deployment
    - ECR repository
 
-4. **IAM Resources**
+3. **IAM Resources**
    - Execution role and policies
 
-5. **CloudWatch Resources**
+4. **CloudWatch Resources**
    - Log groups
+   - Custom dashboards
 
 ## Manual Cleanup
 
