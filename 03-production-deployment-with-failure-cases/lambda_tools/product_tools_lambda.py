@@ -10,11 +10,15 @@ RBAC enforcement happens at the Gateway interceptor level, not here.
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
 
 import boto3
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -687,7 +691,7 @@ def update_pricing(
 
 TOOLS = {
     # READ tools
-    "search_products": search_products,
+    "search": search_products,
     "get_product_details": get_product_details,
     "check_inventory": check_inventory,
     "get_product_recommendations": get_product_recommendations,
@@ -748,9 +752,26 @@ def lambda_handler(event, context):
             k: v for k, v in args.items() if not k.startswith("__") and k != "tool_name"
         }
 
+        logger.info(f"Executing tool: {tool_name} with args: {args}")
         result = tool_func(**args)
+        logger.info(f"Tool {tool_name} completed successfully: {result.get('success', True)}")
 
         return {"statusCode": 200, "body": json.dumps(result, default=decimal_default)}
 
     except Exception as e:
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        logger.error(
+            f"Lambda error: {type(e).__name__}: {str(e)}",
+            extra={
+                "error_type": type(e).__name__,
+                "tool_name": tool_name if 'tool_name' in locals() else "unknown",
+                "args": args if 'args' in locals() else {}
+            },
+            exc_info=True
+        )
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
+        }
