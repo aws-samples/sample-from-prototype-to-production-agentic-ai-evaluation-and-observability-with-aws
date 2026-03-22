@@ -47,6 +47,22 @@ def run_deterministic_checks(test_cases: list, responses: dict) -> list:
     for case in test_cases:
         case_id = case['id']
         response = responses.get(case_id, "")
+        
+        # Warn if response is empty (likely missing --responses file)
+        if not response.strip():
+            results.append({
+                'test_case': case_id,
+                'category': case['category'],
+                'level': 'deterministic',
+                'contains_pass': False,
+                'facts_pass': False,
+                'not_contains_pass': True,
+                'behavior_pass': True,
+                'overall_pass': False,
+                'note': 'Empty response — provide --responses file with cached agent outputs'
+            })
+            continue
+        
         response_lower = response.lower()
         
         # Check 1: expected_output_contains

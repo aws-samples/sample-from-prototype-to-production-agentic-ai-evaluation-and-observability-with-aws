@@ -10,12 +10,14 @@
 name: Agent Evaluation
 
 on:
-  pull_request:
-    paths:
-      - '01-single-agent-prototype/**'
-      - '02-evaluation-baseline/**'
-      - '03-production-deployment/**'
-      - 'scripts/**'
+  workflow_dispatch:  # Manual trigger only — configure AWS credentials before enabling auto-trigger
+  # Uncomment below to auto-trigger on PRs (requires AWS_ROLE_ARN secret):
+  # pull_request:
+  #   paths:
+  #     - '01-single-agent-prototype/**'
+  #     - '02-evaluation-baseline/**'
+  #     - '03-production-deployment/**'
+  #     - 'scripts/**'
 
 jobs:
   agent-eval:
