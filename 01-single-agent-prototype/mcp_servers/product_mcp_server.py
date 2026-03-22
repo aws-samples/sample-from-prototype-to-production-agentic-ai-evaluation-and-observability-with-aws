@@ -140,10 +140,6 @@ def search_products(query: str, category: Optional[str] = None, max_results: int
             if any(term in name or term in description for term in query_lower.split()):
                 matched_products.append(item)
 
-        #BUG-Fix: In case no matching with terms, return the whole set by category
-        if len(matched_products) == 0:
-            matched_products = items
-
         # Limit results
         matched_products = matched_products[:max_results]
 

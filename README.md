@@ -20,7 +20,7 @@ Transform your AI agents from promising prototypes into production-ready systems
 
 | Item | Details |
 |------|---------|
-| **Duration** | 2 hours |
+| **Duration** | 2.5 hours |
 | **Level** | Intermediate |
 | **Use Case** | E-Commerce Customer Service |
 | **Focus** | Evaluation, Observability & Production Readiness |
@@ -79,6 +79,20 @@ By the end of this workshop, you will:
 
 ---
 
+## Evaluation Framework: The Evaluation Pyramid
+
+The workshop teaches a layered evaluation approach — the **Evaluation Pyramid** — where each layer builds on the one below:
+
+| Layer | Name | Description | Modules |
+|-------|------|-------------|---------|
+| **Layer 1** | Deterministic Assertions | Hard checks: expected tool called, RBAC enforced, required fields present. Fast, cheap, no LLM needed. | 02b |
+| **Layer 2** | LLM-as-Judge | An LLM scores agent responses on rubrics (helpfulness, goal success, policy compliance). Flexible but requires calibration. | 02a, 02b, 04 |
+| **Layer 3** | Meta-Evaluation & Human Review | Evaluate the evaluators: compare LLM judge scores against expert-labeled ground truth. Detects evaluator drift. | 02b |
+
+**Principle:** Start at Layer 1 — deterministic checks catch the most critical failures at near-zero cost. Only escalate to Layer 2/3 for nuanced quality judgments that rules can't capture.
+
+---
+
 ## Module 1 Architecture — Single Agent with RBAC
 
 ```
@@ -89,7 +103,7 @@ By the end of this workshop, you will:
                                    │
                     ┌──────────────▼───────────────┐
                     │   PRODUCT CATALOG AGENT       │
-                    │   (Claude Haiku 4.5)          │
+                    │   (Claude Sonnet 4.6)         │
                     │   • Role-aware system prompt  │
                     │   • Tool filtering by role    │
                     └──────────────┬───────────────┘
@@ -124,7 +138,7 @@ By the end of this workshop, you will:
 
 ## Workshop Modules
 
-### Module 1: Single Agent Prototype with RBAC (25 min)
+### Module 1: Single Agent Prototype with RBAC (25 min) [Pyramid: —]
 **Directory**: `01-single-agent-prototype/`
 
 Build a single product catalog agent with role-based access control:
@@ -134,8 +148,10 @@ Build a single product catalog agent with role-based access control:
 - Validate access control boundaries — customers cannot perform admin operations
 - Preview how local RBAC maps to AgentCore Identity JWT auth in production
 
-### Module 2: Evaluation & Baseline (25 min)
+### Module 2: Evaluation & Baseline (35-40 min) [Pyramid: Layer 1, 2, 3]
 **Directory**: `02-evaluation-baseline/`
+
+> **If short on time, run only the first 10 test cases** in notebook 02b to get a meaningful baseline in ~15 min.
 
 Establish quality baselines before deployment:
 - Define custom evaluators for your use case:
@@ -147,7 +163,9 @@ Establish quality baselines before deployment:
 - Run evaluation with synthetic test cases
 - Analyze results and identify improvement areas
 
-### Module 3: Production Deployment (20 min)
+> **Module 02a (DeepEval) is optional** — it demonstrates an alternative evaluation framework. The core workshop path uses strands-evals (Module 02b) which integrates with AgentCore in later modules.
+
+### Module 3: Production Deployment (20 min) [Pyramid: —]
 **Directory**: `03-production-deployment/`
 
 Deploy agents to AWS with full observability:
@@ -156,7 +174,7 @@ Deploy agents to AWS with full observability:
 - Deploy with auto-instrumented OTEL tracing
 - Verify deployment with test invocations
 
-### Module 4: Online Evaluation & Observability (25 min)
+### Module 4: Online Evaluation & Observability (30 min) [Pyramid: Layer 2]
 **Directory**: `04-online-eval-observability/`
 
 Monitor and evaluate agents in production:
@@ -165,7 +183,7 @@ Monitor and evaluate agents in production:
 - Build a CloudWatch custom dashboard as a "single pane of glass"
 - Run on-demand evaluation for specific traces
 
-### Module 5: Production Batch Evaluation (30 min)
+### Module 5: Production Batch Evaluation (30 min) [Pyramid: Layer 1, 2]
 **Directory**: `05-production-batch-evaluation/`
 
 Evaluate production traffic at scale:
@@ -226,7 +244,7 @@ The workshop teaches you to build domain-specific evaluators:
 ## Prerequisites
 
 ### AWS Services Required
-- Amazon Bedrock (Claude Sonnet 4.5, Claude Haiku 4.5)
+- Amazon Bedrock (Claude Sonnet 4.6)
 - Amazon Bedrock AgentCore (Runtime, Gateway)
 - Amazon CloudWatch
 - Amazon S3
@@ -235,8 +253,7 @@ The workshop teaches you to build domain-specific evaluators:
 
 ### Model Access
 Enable in Amazon Bedrock console (using global cross-region inference):
-- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (agent model for all modules)
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (evaluation judge model)
+- `global.anthropic.claude-sonnet-4-6` (used for both the agent and the evaluation judge)
 
 ### Python Dependencies
 ```bash

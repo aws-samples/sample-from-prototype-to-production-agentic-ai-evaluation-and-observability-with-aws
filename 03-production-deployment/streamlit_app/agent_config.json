@@ -9,5 +9,5 @@
   "customer_email": "john.customer@example.com",
   "admin_email": "alice.admin@example.com",
   "test_password": "Workshop1234!",
-  "model_id": "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+  "model_id": "global.anthropic.claude-sonnet-4-6"
 }

@@ -309,7 +309,7 @@ Tool update_inventory completed successfully: True
 The agent is configured with an incorrect or deprecated model ID:
 
 - Current: `anthropic.claude-3-5-haiku-20241022-v1:0` (deprecated)
-- Should be: `global.anthropic.claude-haiku-4-5-20251001-v1:0`
+- Should be: `global.anthropic.claude-sonnet-4-6`
 
 This causes:
 
@@ -382,7 +382,7 @@ Agent error: ValidationException: Could not resolve the foundation model from mo
 **Step 1: Fix default model ID in `agents/product_catalog_agent.py`**
 
 ```python
-MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-haiku-4-5-20251001-v1:0")
+MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-sonnet-4-6")
 ```
 
 **Step 2: Verify available models in your account**
@@ -413,7 +413,7 @@ docker build --platform linux/arm64 -t product-catalog-agent .
 CloudWatch logs should show:
 
 ```
-Initializing model: global.anthropic.claude-haiku-4-5-20251001-v1:0
+Initializing model: global.anthropic.claude-sonnet-4-6
 Model initialized successfully
 Agent response received - length: 234 chars
 ```

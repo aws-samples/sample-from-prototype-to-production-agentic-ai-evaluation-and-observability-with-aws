@@ -133,13 +133,11 @@ def main():
     print("3. Checking Bedrock Model Access...")
     # Using global cross-region inference profiles
     models = [
-        'anthropic.claude-sonnet-4-5-20250929-v1:0',  # Claude Sonnet 4.5
-        'anthropic.claude-haiku-4-5-20251001-v1:0'    # Claude Haiku 4.5
+        'anthropic.claude-sonnet-4-6',  # Claude Sonnet 4.6
     ]
     model_results = check_bedrock_models(bedrock, models)
-    print("   Note: Workshop uses global inference profiles:")
-    print("   - global.anthropic.claude-sonnet-4-5-20250929-v1:0")
-    print("   - global.anthropic.claude-haiku-4-5-20251001-v1:0")
+    print("   Note: Workshop uses global inference profile:")
+    print("   - global.anthropic.claude-sonnet-4-6")
     print()
 
     # 4. Check SSM Parameters

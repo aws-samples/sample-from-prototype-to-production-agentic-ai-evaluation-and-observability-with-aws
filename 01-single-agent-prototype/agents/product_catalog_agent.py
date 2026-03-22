@@ -8,7 +8,7 @@ by the user's role (customer vs admin).
 - Admin role: Full access including create, update, delete products and manage pricing/inventory
 
 Uses MCP (Model Context Protocol) to connect to the product service MCP server.
-Uses Claude Haiku (small LLM) for cost efficiency.
+Uses Claude Sonnet 4.6 for high-quality responses.
 """
 
 import os
@@ -36,7 +36,7 @@ logging.basicConfig(
 PYTHON_EXECUTABLE = sys.executable
 
 # Model configuration
-HAIKU_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+SONNET_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
 
 
 # =============================================================================
@@ -263,9 +263,9 @@ class ProductCatalogAgent:
         # Build role-aware system prompt
         system_prompt = build_system_prompt(self.user_session)
 
-        # Initialize Bedrock model - Claude Haiku for cost efficiency
+        # Initialize Bedrock model
         model = BedrockModel(
-            model_id=HAIKU_MODEL_ID,
+            model_id=SONNET_MODEL_ID,
             region_name=self.region,
             temperature=0.3,
             max_tokens=1500
