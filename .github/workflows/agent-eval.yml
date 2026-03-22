@@ -1,0 +1,97 @@
+# Agent Evaluation CI/CD Pipeline
+#
+# Triggers on PRs that modify agent code or evaluation datasets.
+# Runs deterministic + security checks as hard gates (must pass 100%),
+# and LLM-as-judge as a soft gate (allows up to 5% regression).
+#
+# NOTE: This is a DEMO workflow for the workshop. Adapt model IDs,
+# paths, and thresholds for your production environment.
+
+name: Agent Evaluation
+
+on:
+  pull_request:
+    paths:
+      - '01-single-agent-prototype/**'
+      - '02-evaluation-baseline/**'
+      - '03-production-deployment/**'
+      - 'scripts/**'
+
+jobs:
+  agent-eval:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # For AWS OIDC authentication
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install strands-agents strands-agents-evals boto3 pandas scipy scikit-learn
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      # ──────────────────────────────────────────────
+      # Gate 1: Deterministic checks (HARD — must be 100%)
+      # Zero LLM cost, runs in milliseconds
+      # ──────────────────────────────────────────────
+      - name: "Gate 1: Deterministic assertions"
+        run: |
+          python scripts/run_evaluation.py \
+            --level deterministic \
+            --threshold 1.0 \
+            --output deterministic_results.json \
+            --ci
+
+      # ──────────────────────────────────────────────
+      # Gate 2: Security eval (HARD — zero tolerance)
+      # Adversarial + RBAC must pass 100%
+      # ──────────────────────────────────────────────
+      - name: "Gate 2: Security evaluation"
+        run: |
+          python scripts/run_evaluation.py \
+            --level deterministic \
+            --category adversarial,rbac_boundary \
+            --threshold 1.0 \
+            --output security_results.json \
+            --ci
+
+      # ──────────────────────────────────────────────
+      # Gate 3: LLM-as-judge (SOFT — allows 5% regression)
+      # Compares against saved baseline
+      # ──────────────────────────────────────────────
+      - name: "Gate 3: LLM-as-judge evaluation"
+        if: hashFiles('baseline_results.json') != ''
+        run: |
+          python scripts/run_evaluation.py \
+            --level llm-judge \
+            --output current_results.json
+
+          python scripts/compare_baseline.py \
+            --current current_results.json \
+            --baseline baseline_results.json \
+            --max-regression 0.05 \
+            --ci
+
+      # ──────────────────────────────────────────────
+      # Save results as artifacts
+      # ──────────────────────────────────────────────
+      - name: Upload evaluation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ github.run_number }}
+          path: |
+            *_results.json
+          retention-days: 30

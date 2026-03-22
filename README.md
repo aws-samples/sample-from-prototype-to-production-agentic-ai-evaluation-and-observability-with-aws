@@ -294,6 +294,42 @@ After completing this workshop, you'll understand:
 
 ---
 
+## CI/CD Integration
+
+The workshop includes scripts for integrating agent evaluation into your CI/CD pipeline:
+
+```bash
+# Run deterministic checks only (fast, zero LLM cost)
+python scripts/run_evaluation.py --level deterministic --threshold 1.0 --ci
+
+# Run security-critical categories with zero tolerance
+python scripts/run_evaluation.py --level deterministic --category adversarial,rbac_boundary --threshold 1.0 --ci
+
+# Run full evaluation and save results
+python scripts/run_evaluation.py --output eval_results.json
+
+# Compare against a baseline (detect regressions)
+python scripts/compare_baseline.py --current eval_results.json --baseline baseline.json --max-regression 0.05 --ci
+```
+
+**CI/CD Gates:**
+
+| Gate | Level | Threshold | Purpose |
+|------|-------|-----------|---------|
+| **Gate 1** | Deterministic | 100% (hard) | Basic correctness — tool selection, keyword checks |
+| **Gate 2** | Security | 100% (hard) | RBAC + adversarial — zero tolerance for security failures |
+| **Gate 3** | LLM-as-Judge | 5% regression (soft) | Quality metrics — allows minor variation |
+
+**Getting started:** Generate a baseline first by running Module 02b, then save results:
+```bash
+python scripts/run_evaluation.py --output baseline_results.json
+```
+Subsequent PRs will be compared against this baseline. Gate 3 (LLM-judge regression) is skipped if no baseline file exists.
+
+See `.github/workflows/agent-eval.yml` for a complete GitHub Actions example.
+
+---
+
 ## Additional Resources
 
 - [Strands Agents Documentation](https://strandsagents.com/)
