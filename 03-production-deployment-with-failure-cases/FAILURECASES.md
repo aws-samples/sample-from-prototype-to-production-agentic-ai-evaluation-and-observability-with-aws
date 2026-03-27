@@ -2,6 +2,8 @@
 
 This directory contains an intentionally broken version of the production e-commerce agent deployment. The goal is to teach workshop attendees how to use **AWS Bedrock AgentCore Observability** (CloudWatch Logs, OTEL traces, and structured logging) to diagnose and remediate common production failures.
 
+> **⚠️ Deployment Note:** Always use a **different `WORKSHOP_PREFIX`** (e.g., `ecommerce-workshop-broken`) when deploying failure cases. This prevents overwriting the working agent from Module 03, which Module 04 depends on. See `deployment_config.py` and `README.md` for details.
+
 ## Overview
 
 Each failure case represents a real-world production issue that can't be caught by traditional testing alone. Attendees will:

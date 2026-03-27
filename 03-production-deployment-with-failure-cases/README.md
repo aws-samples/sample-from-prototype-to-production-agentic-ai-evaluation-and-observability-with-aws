@@ -129,18 +129,26 @@ Same as `03-production-deployment`:
 
 ### Deployment Command
 
-Use the same deployment notebook as Module 03, but point to this directory:
+Use the same deployment notebook as Module 03, but change **both** the directory and the prefix:
 
 ```python
-# In deployment notebook, change:
+# In deployment notebook, change these TWO variables:
 AGENT_DIR = "03-production-deployment-with-failure-cases"
+WORKSHOP_PREFIX = "ecommerce-workshop-broken"  # Different prefix to avoid resource conflicts
+RUNTIME_NAME = "ecommerce_workshop_broken_product_catalog_agent"
 ```
 
-### Important
+### Important: Independent Prefix
 
-⚠️ **Do NOT deploy both versions simultaneously** - they will conflict on resource names.
+⚠️ **You MUST use a different `WORKSHOP_PREFIX`** (e.g., `ecommerce-workshop-broken`) to avoid overwriting the working agent deployed in Module 03.
 
-Deploy one version, test it, tear it down, then deploy the other.
+Module 04 depends on the **working** agent from Module 03. If you deploy failure cases with the same prefix, Module 04 will break.
+
+With a different prefix, both versions can coexist:
+- `ecommerce-workshop-*` → Working agent (used by Module 04)
+- `ecommerce-workshop-broken-*` → Broken agent (failure cases exercise)
+
+See `deployment_config.py` for the recommended prefix values.
 
 ## Observability Tools Reference
 
