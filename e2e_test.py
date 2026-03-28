@@ -153,7 +153,7 @@ try:
     resp_text = str(response)
     check("01", "Basic agent query", len(resp_text) > 20, f"Response: {resp_text[:150]}")
     
-    mcp_client.stop()
+    mcp_client.stop(None, None, None)
     
     # RBAC agent test
     from product_catalog_agent import create_product_catalog_agent, UserSession
@@ -277,7 +277,7 @@ GATEWAY_URL = None
 
 if ws_gw and ws_gw[0]['status'] in ('ACTIVE', 'READY'):
     GATEWAY_ID = ws_gw[0]['gatewayId']
-    gw_detail = agentcore.get_gateway(gatewayId=GATEWAY_ID)
+    gw_detail = agentcore.get_gateway(gatewayIdentifier=GATEWAY_ID)
     GATEWAY_URL = gw_detail.get('gatewayUrl')
     check("03", "Gateway active", True, f"ID: {GATEWAY_ID}, URL: {GATEWAY_URL}")
 else:
@@ -322,7 +322,7 @@ else:
         # Wait for active
         for i in range(30):
             time.sleep(10)
-            status = agentcore.get_gateway(gatewayId=GATEWAY_ID)
+            status = agentcore.get_gateway(gatewayIdentifier=GATEWAY_ID)
             state = status['status']
             print(f"    [{i+1}/30] Gateway: {state}")
             if state in ('ACTIVE', 'READY'):
@@ -527,11 +527,13 @@ if RUNTIME_ID:
         print("\n  Testing evaluate() API (Nicholas Issue #4)...")
         
         # First try with a conversation-based evaluation (simpler, no spans needed)
+        # traceId must be 32+ chars per API validation
+        test_trace_id = "e2e-test-trace-" + str(uuid.uuid4()).replace("-", "")
         eval_resp = agentcore_rt.evaluate(
             evaluatorId="Builtin.Helpfulness",
             evaluationInput={"sessionSpans": [{
-                "traceId": "test-trace-001",
-                "spanId": "test-span-001",
+                "traceId": test_trace_id,
+                "spanId": "e2e-test-span-" + str(uuid.uuid4()).replace("-", "")[:18],
                 "name": "agent_turn",
                 "scope": {"name": "test-agent"},
                 "attributes": {},
@@ -540,7 +542,7 @@ if RUNTIME_ID:
                     {"name": "gen_ai.assistant.message", "attributes": {"gen_ai.content": "Found several headphones in catalog."}}
                 ]
             }]},
-            evaluationTarget={"traceIds": ["test-trace-001"]},
+            evaluationTarget={"traceIds": [test_trace_id]},
         )
         eval_results = eval_resp.get('evaluationResults', [])
         if eval_results:
