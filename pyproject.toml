@@ -23,6 +23,7 @@ dependencies = [
     "strands-agents>=0.1.0",
     "strands-agents-evals>=0.1.0",
     "strands-agents-tools>=0.2.0",
+    "matplotlib>=3.7.0",
     "scipy>=1.10.0",
     "uuid>=1.30",
 ]
