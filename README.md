@@ -177,10 +177,14 @@ Deploy agents to AWS with full observability:
 ### Module 4: Online Evaluation & Observability (30 min) [Pyramid: Layer 2]
 **Directory**: `04-online-eval-observability/`
 
-Monitor and evaluate agents in production:
+Monitor and evaluate agents in production (8 steps):
 - Configure online evaluation with built-in and custom evaluators
+- Generate test data and validate tool connectivity
 - Explore OTEL traces in CloudWatch (span flow, tool calls, latency)
+- Extract and analyze tool call patterns from trace spans
 - Build a CloudWatch custom dashboard as a "single pane of glass"
+
+> **Note:** On-demand evaluation via the Evaluate API requires broader scope configuration. This module uses online evaluation which runs automatically on every agent invocation.
 
 ### Module 5: Production Batch Evaluation (30 min) [Pyramid: Layer 1, 2]
 **Directory**: `05-production-batch-evaluation/`
