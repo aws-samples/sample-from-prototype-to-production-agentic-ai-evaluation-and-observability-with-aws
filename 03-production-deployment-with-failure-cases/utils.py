@@ -820,6 +820,43 @@ def create_agent_runtime_endpoint(
         return None
 
 
+def _read_streaming_body(resp) -> str:
+    """Read a streaming response body, accumulating raw bytes before decoding.
+
+    Small chunk sizes can split multi-byte UTF-8 characters (e.g. emojis).
+    We collect all raw bytes first, then decode the complete buffer.
+    """
+    raw_chunks = []
+    if hasattr(resp, 'iter_chunks'):
+        for chunk in resp.iter_chunks():
+            if isinstance(chunk, bytes):
+                raw_chunks.append(chunk)
+            else:
+                raw_chunks.append(chunk.encode('utf-8'))
+    elif hasattr(resp, 'read'):
+        raw_chunks.append(resp.read())
+    elif hasattr(resp, '__iter__'):
+        for chunk in resp:
+            if isinstance(chunk, bytes):
+                raw_chunks.append(chunk)
+            elif isinstance(chunk, dict) and 'chunk' in chunk:
+                raw_chunks.append(chunk['chunk']['bytes'])
+            else:
+                raw_chunks.append(str(chunk).encode('utf-8'))
+
+    full_bytes = b''.join(raw_chunks)
+    text = full_bytes.decode('utf-8', errors='replace')
+
+    # Strip SSE "data: " prefixes
+    lines = []
+    for line in text.splitlines():
+        if line.startswith('data: '):
+            line = line[6:]
+        if line.strip():
+            lines.append(line)
+    return '\n'.join(lines)
+
+
 def invoke_agent_runtime(
     agentcore_runtime_client, runtime_arn: str, session_id: str, payload: dict
 ) -> dict:
@@ -831,54 +868,15 @@ def invoke_agent_runtime(
             payload=json.dumps(payload).encode('utf-8')
         )
         content_type = response.get('contentType', '')
+        resp = response.get('response', response.get('body', b''))
 
-        if 'text/event-stream' in content_type:
-            # Handle streaming response
-            content = []
-            for line in response['response'].iter_lines(chunk_size=10):
-                if line:
-                    line = line.decode('utf-8') if isinstance(line, bytes) else line
-                    if line.startswith('data: '):
-                        line = line[6:]
-                    content.append(line)
-            full_response = '\n'.join(content)
-            # Try to parse as JSON, otherwise return as text
-            try:
-                return json.loads(full_response)
-            except (json.JSONDecodeError, ValueError):
-                return {'response': full_response, 'status': 'success'}
+        full_response = _read_streaming_body(resp)
 
-        elif content_type == 'application/json':
-            # Handle standard JSON response
-            content = []
-            for chunk in response.get('response', []):
-                content.append(chunk.decode('utf-8') if isinstance(chunk, bytes) else str(chunk))
-            return json.loads(''.join(content))
-
-        else:
-            # Handle other/unknown content types - read response body
-            content = []
-            resp = response.get('response', response.get('body', []))
-            if hasattr(resp, 'iter_lines'):
-                for line in resp.iter_lines(chunk_size=10):
-                    if line:
-                        line = line.decode('utf-8') if isinstance(line, bytes) else line
-                        if line.startswith('data: '):
-                            line = line[6:]
-                        content.append(line)
-            elif hasattr(resp, '__iter__'):
-                for chunk in resp:
-                    if isinstance(chunk, bytes):
-                        content.append(chunk.decode('utf-8'))
-                    elif isinstance(chunk, dict) and 'chunk' in chunk:
-                        content.append(chunk['chunk']['bytes'].decode('utf-8'))
-                    else:
-                        content.append(str(chunk))
-            full_response = '\n'.join(content)
-            try:
-                return json.loads(full_response)
-            except (json.JSONDecodeError, ValueError):
-                return {'response': full_response, 'status': 'success'}
+        # Try to parse as JSON (agent returns structured response)
+        try:
+            return json.loads(full_response)
+        except (json.JSONDecodeError, ValueError):
+            return {'response': full_response, 'status': 'success'}
 
     except Exception as e:
         print(f"Error invoking runtime: {e}")
@@ -941,7 +939,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "get_product_details",
-            "description": "Get information about a product",
+            "description": "Check current stock levels and availability for a product",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -952,7 +950,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "check_inventory",
-            "description": "Get information about a product",
+            "description": "Get detailed product information including name, price, description, and specifications",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -975,7 +973,7 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "compare_products",
-            "description": "Get information about a product",
+            "description": "Get detailed product information including name, price, description, and specifications",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1048,7 +1046,7 @@ def get_product_tool_schemas() -> list:
                 "type": "object",
                 "properties": {
                     "product_id": {"type": "string", "description": "Product ID"},
-                    "new_quantity": {"type": "integer", "description": "New stock level"},
+                    "new_quantity": {"type": "string", "description": "New stock level"},
                     "restock_date": {"type": "string", "description": "Restock date (YYYY-MM-DD)"}
                 },
                 "required": ["product_id", "new_quantity"]

@@ -1,13 +1,14 @@
 {
-  "runtime_arn": "arn:aws:bedrock-agentcore:us-west-2:881490113957:runtime/ecommerce_workshop_product_catalog_agent-E7WUvD9R1u",
-  "runtime_id": "ecommerce_workshop_product_catalog_agent-E7WUvD9R1u",
-  "gateway_id": "ecommerce-workshop-product-gateway-uh7wpjkjex",
-  "gateway_url": "https://ecommerce-workshop-product-gateway-uh7wpjkjex.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp",
+  "runtime_arn": "arn:aws:bedrock-agentcore:us-west-2:534409838809:runtime/ecommerce_workshop_product_catalog_agent-Nda58K37yj",
+  "runtime_id": "ecommerce_workshop_product_catalog_agent-Nda58K37yj",
+  "gateway_id": "ecommerce-workshop-product-gateway-2vhjfcwgfy",
+  "gateway_url": "https://ecommerce-workshop-product-gateway-2vhjfcwgfy.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp",
   "region": "us-west-2",
-  "user_pool_id": "us-west-2_g5Px4wTJy",
-  "user_client_id": "1nfuehtomuhp0jsskb4lroatoi",
+  "user_pool_id": "us-west-2_zZFgcKaqx",
+  "user_client_id": "3nvfo8a3bfvipd9k07pfi37mnf",
   "customer_email": "john.customer@example.com",
   "admin_email": "alice.admin@example.com",
   "test_password": "Workshop1234!",
-  "model_id": "global.anthropic.claude-sonnet-4-6"
+  "model_id": "global.anthropic.claude-sonnet-4-6",
+  "otel_service_name": "ecommerce-workshop-product-catalog-agent"
 }

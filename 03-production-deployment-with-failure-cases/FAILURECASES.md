@@ -15,26 +15,32 @@ Each failure case represents a real-world production issue that can't be caught 
 
 ---
 
-## Failure Case 1: Poor Tool Metadata
+## Failure Case 1: Poor Tool Metadata + Routing Mismatch
 
 ### Description
 
-Tools have vague or generic names and descriptions that confuse the LLM's tool selection logic:
+This failure case combines **two** real-world bugs that compound each other:
 
+**Bug A — Misleading Tool Descriptions (Gateway Schema):**
 - `search` has a vague description: "Find items" (doesn't specify what items or that it searches products)
-- **THREE tools have IDENTICAL descriptions**: "Get information about a product"
-  - `get_product_details`
-  - `check_inventory`
-  - `compare_products`
+- `get_product_details` and `check_inventory` have **SWAPPED descriptions**:
+  - `get_product_details`: "Check current stock levels and availability for a product" (WRONG — this is the inventory description)
+  - `check_inventory`: "Get detailed product information including name, price, description, and specifications" (WRONG — this is the details description)
+- `compare_products` has a misleading description identical to `check_inventory`
 
-The LLM cannot distinguish between these tools, leading to incorrect tool selection.
+**Bug B — Swapped Lambda Routing:**
+- In `product_tools_lambda.py`, the TOOLS dict maps `get_product_details` → `check_inventory()` function and vice versa
+- When the LLM calls `get_product_details`, the Lambda executes `check_inventory()` which returns **only stock info** (product_name, in_stock, quantity_available)
+- The full product details (price, description, features, specifications, warranty) are never returned
+
+Together, these bugs mean the agent returns **incomplete/wrong data** regardless of which tool the LLM selects.
 
 ### Symptoms
 
-- Agent returns "no results found" when products clearly exist
-- Agent calls the wrong tool (e.g., `check_inventory` instead of `get_product_details`)
-- Results look plausible but are incorrect or incomplete
-- Subtle failures that don't throw obvious errors
+- Agent returns only stock availability info when asked for product details (missing price, specs, features, warranty)
+- Agent returns full product details when asked about inventory (overkill but not what was requested)
+- Results look plausible but are incomplete — no obvious errors thrown
+- The `tools_used` metadata in the response reveals which tool was called
 
 ### Manual Test Scenario
 
@@ -46,23 +52,23 @@ Expected: Agent uses search tool and returns relevant products
 Actual: Agent may not use any tool, or uses wrong tool because "Find items" is too vague
 ```
 
-**Test Scenario 2 - Identical Descriptions:**
+**Test Scenario 2 - Swapped Routing:**
 
 ```
-User: "Show me details about product LAPTOP-001"
-Expected: Agent uses get_product_details tool (returns full product info)
-Actual: Agent randomly picks get_product_details, check_inventory, or compare_products
-        because all three have identical descriptions. May return only stock quantity
-        instead of full product details.
+User: "Show me details about product PROD-001"
+Expected: Agent uses get_product_details → returns full product info (price, description, specs, etc.)
+Actual: Agent calls get_product_details → Lambda runs check_inventory() → returns ONLY:
+        product_name, in_stock, quantity_available
+        MISSING: price, description, features, specifications, warranty, rating
 ```
 
-**Test Scenario 3 - Identical Descriptions:**
+**Test Scenario 3 - Check Inventory Returns Wrong Data:**
 
 ```
-User: "Compare LAPTOP-001 and LAPTOP-002"
-Expected: Agent uses compare_products tool
-Actual: Agent may use get_product_details or check_inventory instead because
-        all have the same description
+User: "Is product PROD-001 in stock?"
+Expected: Agent uses check_inventory → returns stock status
+Actual: Agent calls check_inventory → Lambda runs get_product_details() → returns
+        full product details including stock info (works but returns excessive data)
 ```
 
 ### Diagnosis with Observability
@@ -70,83 +76,85 @@ Actual: Agent may use get_product_details or check_inventory instead because
 **CloudWatch Logs:**
 
 ```bash
-# Search for tool invocations
+# Search for tool invocations in Lambda logs
 aws logs filter-log-events \
-  --log-group-name /aws/bedrock-agentcore/runtimes/... \
-  --filter-pattern "Tool invoked"
+  --log-group-name /aws/lambda/ecommerce-workshop-broken-product-tools \
+  --filter-pattern "Executing tool"
 ```
 
 Look for:
 
-- `Tool invoked: search` instead of `search_products`
-- Missing tool invocations when they should have occurred
-- Wrong tool selected (e.g., `check_inventory` when `get_product_details` was needed)
+- `Executing tool: get_product_details` — but the response contains only `product_name`, `in_stock`, `quantity_available` (stock-only fields from `check_inventory()`)
+- `Executing tool: check_inventory` — but the response contains full product details (from `get_product_details()`)
+- The tool NAME vs the response FIELDS don't match
 
 **OTEL Traces:**
 
 Navigate to X-Ray console → Traces:
 
-- Look for tool call spans
-- Check `tool.name` attribute - may show generic "search" instead of specific tool
-- Compare tool names in successful vs failed requests
-- Note missing tool invocation spans
+- Look for tool call spans — the tool name attribute shows `get_product_details`
+- Check the response body — contains only inventory fields
+- Compare with the working agent's traces for the same query
 
-**Key Log Entries:**
+**Agent Metadata (in notebook output):**
 
+The test cells print `tools_used` from the agent response metadata:
 ```
-Tool names: ['search', 'get_product_details', 'check_inventory', ...]
-Tool invoked: search with params: {'query': 'wireless headphones'}
+Tools used: ['get_product_details']   # Tool was called...
+Response: "PROD-001 is in stock with 100 units available"   # ...but only stock info returned!
 ```
 
 ### Root Cause
 
 **Files to inspect:**
 
-1. **`utils.py` (lines 928-990)** - Tool schema definitions
-   - Line 930: `"description": "Find items"` is too vague - doesn't specify products
-   - **Lines 944, 955, 978**: THREE IDENTICAL descriptions cause LLM confusion:
-     - Line 944: `get_product_details` - "Get information about a product"
-     - Line 955: `check_inventory` - "Get information about a product" (IDENTICAL)
-     - Line 978: `compare_products` - "Get information about a product" (IDENTICAL)
+1. **`utils.py` (lines ~930-990)** - Tool schema definitions
+   - `search` has vague description: "Find items"
+   - `get_product_details` description says "Check current stock levels..." (WRONG — swapped)
+   - `check_inventory` description says "Get detailed product information..." (WRONG — swapped)
+   - `compare_products` has same misleading description as `check_inventory`
 
-2. **`lambda_tools/product_tools_lambda.py` (line 690)** - Tool routing
-   - Line 690: `"search": search_products` should be `"search_products": search_products`
+2. **`lambda_tools/product_tools_lambda.py` (lines ~692-706)** - Tool routing
+   - `"get_product_details": check_inventory` — routes to WRONG function
+   - `"check_inventory": get_product_details` — routes to WRONG function
 
-3. **`agents/product_catalog_agent.py` (line 40)** - Tool filtering
-   - Line 40: `"search"` in CUSTOMER_TOOLS should be `"search_products"`
+3. **`agents/product_catalog_agent.py` (line 40)** - Tool name
+   - `"search"` in CUSTOMER_TOOLS should be `"search_products"`
 
 ### Fix Implementation
 
-**Step 1: Fix tool schema in `utils.py`**
+**Step 1: Fix tool descriptions in `utils.py`**
 
 ```python
 {
     "name": "search_products",  # Changed from "search"
-    "description": "Search for products in the catalog using keywords and optional category filter",  # Made specific - mentions "products" and "catalog"
+    "description": "Search for products in the catalog using keywords and optional category filter",
     ...
 },
 {
     "name": "get_product_details",
-    "description": "Get detailed information about a specific product including name, price, description, specifications, and warranty",  # Made specific and distinct
+    "description": "Get detailed information about a specific product including name, price, description, specifications, and warranty",
     ...
 },
 {
     "name": "check_inventory",
-    "description": "Check current inventory levels and stock availability for a product",  # Made specific and distinct - focuses on inventory/stock
+    "description": "Check current inventory levels and stock availability for a product",
     ...
 },
 {
     "name": "compare_products",
-    "description": "Compare multiple products side by side (2-5 products)",  # Made specific
+    "description": "Compare multiple products side by side (2-5 products)",
     ...
 }
 ```
 
-**Step 2: Fix tool routing in `lambda_tools/product_tools_lambda.py`**
+**Step 2: Fix Lambda routing in `lambda_tools/product_tools_lambda.py`**
 
 ```python
 TOOLS = {
-    "search_products": search_products,  # Changed from "search"
+    "search_products": search_products,       # Fixed name
+    "get_product_details": get_product_details,  # Fixed: was check_inventory
+    "check_inventory": check_inventory,          # Fixed: was get_product_details
     ...
 }
 ```
@@ -162,12 +170,7 @@ CUSTOMER_TOOLS = [
 
 ### Verification
 
-Redeploy and retest with the same scenarios. CloudWatch logs should now show:
-
-```
-Tool names: ['search_products', 'get_product_details', 'check_inventory', ...]
-Tool invoked: search_products with params: {'query': 'wireless headphones'}
-```
+Redeploy Lambda, update Gateway target, and retest. The response for "Show me details about PROD-001" should now include price, description, features, specifications, and warranty — not just stock info.
 
 ---
 
@@ -636,7 +639,7 @@ OTEL traces should show session continuity across invocations.
 
 | Failure Case                        | Key Symptom                                 | Primary Diagnostic                               | Fix Location                                                      | Deployment Required                     |
 | ----------------------------------- | ------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------- |
-| **1. Poor Tool Metadata**           | Wrong tool selected, "no results"           | CloudWatch logs, tool invocation spans           | `utils.py`, `product_tools_lambda.py`, `product_catalog_agent.py` | Lambda + Gateway update                 |
+| **1. Poor Metadata + Routing**      | Incomplete data returned (missing price/specs) | CloudWatch Lambda logs, response field mismatch  | `utils.py`, `product_tools_lambda.py`, `product_catalog_agent.py` | Lambda + Gateway update                 |
 | **2. Parameter Schema Mismatch**    | Lambda errors, type validation failures     | CloudWatch Lambda logs, error spans              | `utils.py` (tool schema description)                              | Gateway update                          |
 | **3. Wrong Model ID**               | Agent fails to start, ValidationException   | CloudWatch runtime logs, model invocation errors | `product_catalog_agent.py` (MODEL_ID)                             | Full container rebuild + runtime update |
 | **4. Missing Conversation History** | No memory across turns, redundant questions | CloudWatch logs (session), tool call patterns    | `product_catalog_agent.py` (add session persistence)              | Runtime update + DynamoDB table         |

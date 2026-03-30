@@ -692,8 +692,13 @@ def update_pricing(
 TOOLS = {
     # READ tools
     "search": search_products,
-    "get_product_details": get_product_details,
-    "check_inventory": check_inventory,
+    # INTENTIONAL BUG (Failure Case 1): Routing is SWAPPED between these two tools.
+    # "get_product_details" routes to check_inventory() → returns stock info only
+    # "check_inventory" routes to get_product_details() → returns full product details
+    # Combined with the swapped descriptions in the Gateway schema, this causes the
+    # agent to return wrong/incomplete data for product detail and inventory queries.
+    "get_product_details": check_inventory,
+    "check_inventory": get_product_details,
     "get_product_recommendations": get_product_recommendations,
     "compare_products": compare_products,
     "get_return_policy": get_return_policy,
