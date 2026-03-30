@@ -23,9 +23,8 @@ No multi-agent orchestrator. No order agent. No account agent.
 | 01 Agent Prototype | `01-single-agent-prototype/` | `01-single-agent-prototype.ipynb` |
 | 02 Evaluation | `02-evaluation-baseline/` | `02a-deepeval-evaluation.ipynb`, `02b-strands-evaluation.ipynb` |
 | 03 Deployment | `03-production-deployment/` | `03-production-deployment.ipynb` |
-| 03b Failure Cases | `03-production-deployment-with-failure-cases/` | `03-production-deployment-with-failure-cases.ipynb` |
 | 04 Online Eval | `04-online-eval-observability/` | `04-agentcore-evaluations.ipynb` |
-| 05 Batch Eval | `05-production-batch-evaluation/` | `05a-production-batch-evaluation.ipynb` |
+| 05 Batch Eval | `05-production-batch-evaluation/` | `05-production-batch-evaluation.ipynb` |
 
 ---
 

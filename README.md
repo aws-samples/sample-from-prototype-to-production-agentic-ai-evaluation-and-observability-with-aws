@@ -181,7 +181,6 @@ Monitor and evaluate agents in production:
 - Configure online evaluation with built-in and custom evaluators
 - Explore OTEL traces in CloudWatch (span flow, tool calls, latency)
 - Build a CloudWatch custom dashboard as a "single pane of glass"
-- Run on-demand evaluation for specific traces
 
 ### Module 5: Production Batch Evaluation (30 min) [Pyramid: Layer 1, 2]
 **Directory**: `05-production-batch-evaluation/`
@@ -254,11 +253,6 @@ The workshop teaches you to build domain-specific evaluators:
 ### Model Access
 Enable in Amazon Bedrock console (using global cross-region inference):
 - `global.anthropic.claude-sonnet-4-6` (used for both the agent and the evaluation judge)
-
-### Python Dependencies
-```bash
-pip install strands-agents strands-agents-evals boto3 pandas streamlit
-```
 
 ---
 
