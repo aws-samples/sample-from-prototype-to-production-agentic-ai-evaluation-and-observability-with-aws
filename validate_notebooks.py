@@ -49,7 +49,7 @@ NOTEBOOK_PATHS = [
     "02-evaluation-baseline/02a-deepeval-evaluation.ipynb",
     "02-evaluation-baseline/02b-strands-evaluation.ipynb",
     "04-online-eval-observability/04-agentcore-evaluations.ipynb",
-    "05-production-batch-evaluation/05a-production-batch-evaluation.ipynb",
+    "05-production-batch-evaluation/05-production-batch-evaluation.ipynb",
 ]
 
 # Stale references that should NOT appear in notebook source cells
