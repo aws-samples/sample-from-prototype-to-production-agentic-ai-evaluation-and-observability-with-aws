@@ -8,7 +8,7 @@ dependencies = [
     "aws-opentelemetry-distro>=0.1.0",
     "bedrock-agentcore>=0.1.0",
     "bedrock-agentcore-starter-toolkit>=0.1.0",
-    "boto3>=1.35.0",
+    "boto3>=1.35.100",
     "deepeval>=3.8.8",
     "ipywidgets>=8.0.0",
     "jupyter>=1.0.0",
@@ -27,4 +27,6 @@ dependencies = [
     "matplotlib>=3.7.0",
     "scipy>=1.10.0",
     "uuid>=1.30",
+    "botocore>=1.35.100",
+    "scikit-learn>=1.8.0",
 ]
