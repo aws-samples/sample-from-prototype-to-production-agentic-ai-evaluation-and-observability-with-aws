@@ -28,5 +28,4 @@ dependencies = [
     "scipy>=1.10.0",
     "uuid>=1.30",
     "botocore>=1.35.100",
-    "scikit-learn>=1.8.0",
 ]
