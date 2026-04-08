@@ -70,6 +70,8 @@ coverage.xml
 02-evaluation-baseline/baseline_metrics.json
 02-evaluation-baseline/.deepeval/
 02-evaluation-baseline/deepeval_results.json
+02-evaluation-baseline/deterministic_results.json
+02-evaluation-baseline/test_step10.py
 03-production-deployment/streamlit_app/gateway_config.json
 03-production-deployment/streamlit_app/agent_config.json
 
