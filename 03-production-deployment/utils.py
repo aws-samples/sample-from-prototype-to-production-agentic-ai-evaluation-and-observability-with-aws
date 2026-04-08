@@ -74,7 +74,14 @@ def create_lambda_execution_role(iam_client, role_name: str, dynamodb_table_arns
         role = iam_client.get_role(RoleName=role_name)
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:
+        # AccessDenied on CreateRole — role may already exist; try GetRole
         print(f"Error creating role: {e}")
+        try:
+            role = iam_client.get_role(RoleName=role_name)
+            print(f"Role {role_name} already exists (retrieved via GetRole)")
+            return {'Role': role['Role'], 'exit_code': 0}
+        except Exception:
+            pass
         return {'Role': None, 'exit_code': 1, 'error': str(e)}
 
 
@@ -414,6 +421,16 @@ def create_agentcore_gateway_role(iam_client, role_name: str, lambda_arns: list)
         )
         print(f"Updated Lambda invoke policy on Gateway role")
         return {'Role': role['Role']}
+    except Exception as e:
+        # AccessDenied on CreateRole — role may already exist; try GetRole
+        print(f"Error creating gateway role: {e}")
+        try:
+            role = iam_client.get_role(RoleName=role_name)
+            print(f"Role {role_name} already exists (retrieved via GetRole)")
+            return {'Role': role['Role']}
+        except Exception:
+            pass
+        return {'Role': None, 'error': str(e)}
 
 
 def create_gateway(
@@ -771,7 +788,14 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
 
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:
+        # AccessDenied on CreateRole — role may already exist; try GetRole
         print(f"Error creating role: {e}")
+        try:
+            role = iam_client.get_role(RoleName=role_name)
+            print(f"Role {role_name} already exists (retrieved via GetRole)")
+            return {'Role': role['Role'], 'exit_code': 0}
+        except Exception:
+            pass
         return {'Role': None, 'exit_code': 1, 'error': str(e)}
 
 
