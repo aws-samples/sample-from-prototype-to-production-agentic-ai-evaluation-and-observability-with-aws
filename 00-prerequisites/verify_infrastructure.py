@@ -99,7 +99,7 @@ def main():
 
     # Get region
     session = boto3.Session()
-    region = session.region_name or 'us-east-1'
+    region = session.region_name or 'us-west-2'
     print(f"AWS Region: {region}\n")
 
     # Initialize clients
