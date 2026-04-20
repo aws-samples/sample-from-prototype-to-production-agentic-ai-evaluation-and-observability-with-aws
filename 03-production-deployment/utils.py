@@ -853,15 +853,23 @@ def create_agent_runtime(
     except agentcore_client.exceptions.ConflictException:
         print(f"Runtime '{runtime_name}' already exists, retrieving...")
         try:
-            response = agentcore_client.list_agent_runtimes()
-            for rt in response.get('agentRuntimes', response.get('items', [])):
-                if rt.get('agentRuntimeName') == runtime_name:
-                    details = agentcore_client.get_agent_runtime(agentRuntimeId=rt['agentRuntimeId'])
-                    return {
-                        'agentRuntimeId': rt['agentRuntimeId'],
-                        'agentRuntimeArn': details.get('agentRuntimeArn'),
-                        'status': details.get('status')
-                    }
+            next_token = None
+            while True:
+                params = {}
+                if next_token:
+                    params['nextToken'] = next_token
+                response = agentcore_client.list_agent_runtimes(**params)
+                for rt in response.get('agentRuntimes', response.get('items', [])):
+                    if rt.get('agentRuntimeName') == runtime_name:
+                        details = agentcore_client.get_agent_runtime(agentRuntimeId=rt['agentRuntimeId'])
+                        return {
+                            'agentRuntimeId': rt['agentRuntimeId'],
+                            'agentRuntimeArn': details.get('agentRuntimeArn'),
+                            'status': details.get('status')
+                        }
+                next_token = response.get('nextToken')
+                if not next_token:
+                    break
         except Exception as e:
             print(f"Error listing runtimes: {e}")
         return None
