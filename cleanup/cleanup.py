@@ -282,6 +282,7 @@ def cleanup_iam_roles(region):
         f"{WORKSHOP_PREFIX}-runtime-role",
         f"{WORKSHOP_PREFIX}-evaluation-role",
         f"{WORKSHOP_PREFIX}-firehose-role",
+        f"{WORKSHOP_PREFIX}-cw-logs-role",
     ]
 
     for role_name in roles:
