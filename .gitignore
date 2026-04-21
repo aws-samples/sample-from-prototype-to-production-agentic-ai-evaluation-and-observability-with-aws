@@ -72,8 +72,14 @@ coverage.xml
 02-evaluation-baseline/deepeval_results.json
 02-evaluation-baseline/deterministic_results.json
 02-evaluation-baseline/test_step10.py
+03-production-deployment/deployment_config.json
 03-production-deployment/streamlit_app/gateway_config.json
 03-production-deployment/streamlit_app/agent_config.json
+05-production-batch-evaluation/evaluation_results/
+
+# Internal tooling (not part of the workshop)
+CLAUDE.md
+docs/workshop-analysis-and-recommendations.md
 
 # MacOS
 .DS_Store

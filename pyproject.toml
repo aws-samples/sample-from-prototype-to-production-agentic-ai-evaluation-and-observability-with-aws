@@ -1,7 +1,7 @@
 [project]
 name = "ecommerce-agent-workshop"
 version = "0.1.0"
-description = "Add your description here"
+description = "From Prototype to Production with AWS: Agentic AI Evaluation and Observability Workshop"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

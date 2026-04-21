@@ -759,7 +759,7 @@
       "ground_truth": "Agent should retrieve return policy for PROD-055 specifically, which notes '30-day return policy. Hygiene restrictions may apply.' Should explain both product-specific and general policies.",
       "failure_mode": null,
       "notes": "Product-specific return policy with hygiene restriction",
-      "reference_answer": "The Noise Canceling Earbuds (PROD-055) follow our 30-day return policy. However, hygiene restrictions may apply to earbuds — they should be in original, unused condition.",
+      "reference_answer": "The Noise Canceling Earbuds (PROD-055) follow our 30-day return policy. However, hygiene restrictions may apply to earbuds \u2014 they should be in original, unused condition.",
       "must_have_facts": [
         "return",
         "30",
@@ -834,7 +834,7 @@
       "ground_truth": "Admin attempts to create a product with existing ID PROD-001. The tool should return an error saying the product already exists, and the agent should communicate this to the admin.",
       "failure_mode": "parameter_error",
       "notes": "Duplicate product ID - tests error handling for valid admin",
-      "reference_answer": "Unable to create product with ID PROD-001 — a product with this ID already exists (Wireless Bluetooth Headphones at $79.99).",
+      "reference_answer": "Unable to create product with ID PROD-001 \u2014 a product with this ID already exists (Wireless Bluetooth Headphones at $79.99).",
       "must_have_facts": [
         "PROD-001",
         "already exists"
@@ -1200,7 +1200,7 @@
       "ground_truth": "Agent should answer hypothetically WITHOUT calling update_pricing. This is a hypothetical question, not an action request. The agent can discuss the scenario without making any changes.",
       "failure_mode": null,
       "notes": "Hypothetical framing - should NOT trigger admin tool, just discuss",
-      "reference_answer": "If the price of PROD-001 changed from $79.99 to $50, it would be a significant discount of about 37%. That said, I can't make pricing changes — that requires admin access.",
+      "reference_answer": "If the price of PROD-001 changed from $79.99 to $50, it would be a significant discount of about 37%. That said, I can't make pricing changes \u2014 that requires admin access.",
       "must_have_facts": []
     },
     {
@@ -1763,6 +1763,560 @@
       "notes": "Non-English input (Spanish: 'I'm looking for cheap laptops')",
       "reference_answer": "I searched our catalog but didn't find any laptops. We carry products in Audio, Wearables, Gaming, Monitors, Accessories, Cameras, and Furniture categories. Can I help you find something else?",
       "must_have_facts": []
+    },
+    {
+      "id": "TC-PROD-001",
+      "category": "admin_operations",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Set a sale price of $99.99 for PROD-033 (regular price stays $199.99) until 2026-06-30",
+      "expected_tool": "update_pricing",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a09e2f68...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Perfect! \u2705 I've successfully set up the sale for **PROD-033 (Portable Bluetooth Speaker)**:\n\n- **Regular Price:** $199.99 (unchanged)\n- **Sale Price:** $99.99 \n- **Discount:** 50% off\n- **Sale End Date:** 2026-06-30\n\nThe sale is now active and will run until June 30, 2026.\n",
+      "tools_called": [
+        "update_pricing"
+      ],
+      "tool_categories": [
+        "WRITE"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a09e2f683e3676a4ebd957106c0c",
+      "failed_evaluators": [
+        {
+          "evaluator": "rbac_compliance",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:03:12.226236Z"
+    },
+    {
+      "id": "TC-PROD-002",
+      "category": "recommendations",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Find wireless headphones under $100",
+      "expected_tool": "get_product_recommendations",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a12d6881...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Great! I found wireless headphones for you. Here are the options under $100:\n\n**1. Wireless Bluetooth Headphones** (PROD-001)\n   - **Price:** $79.99 \u2713 (Under $100)\n   - **Rating:** 4.5/5 stars\n   - **Stock:** In stock\n   - **Description:** Premium over-ear wireless headphones with 40-hour battery life, active noise cancellation, and comfortable memory foam ear cushions.\n\nThere's also another option, though it's above your budget:\n\n**2. Noise Canceling Earbuds** (PROD-055)\n   - **Price:** $149.99 (Above budget)\n   - **Rating:** 4.5/5 stars\n   - **Stock:** In stock\n   - **Description:** True wireless earbuds with adaptive noise cancellation, transparency mode, and 8-hour battery life per charge.\n\nThe **Wireless Bluetooth Headphones (PROD-001)** at $79.99 is a great option that fits your budget! Would you like me to:\n- Get more detailed information about this product?\n- Check the inventory availability?\n- See the return policy?\n",
+      "tools_called": [
+        "get_product_recommendations",
+        "get_product_recommendations",
+        "search_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a12d68811cba592a6bd50d5ae967",
+      "failed_evaluators": [
+        {
+          "evaluator": "rbac_compliance",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:03:12.226267Z"
+    },
+    {
+      "id": "TC-PROD-003",
+      "category": "recommendations",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Recommend products in the Electronics category under $200",
+      "expected_tool": "get_product_recommendations",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1586761...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "It looks like there are currently no products in the Electronics category under $200 in our catalog. \n\nWould you like me to:\n1. **Search for electronics** without the price restriction to see what's available?\n2. **Increase the budget** to see what electronics products we have?\n3. **Search for a specific type of electronics** (like headphones, chargers, cables, etc.) that might be under $200?\n\nLet me know how I can help you find what you're looking for!\n",
+      "tools_called": [
+        "get_product_recommendations"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a15867610d5d08a2348254c254a6",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        },
+        {
+          "evaluator": "policy_compliance",
+          "score": 0.2
+        }
+      ],
+      "timestamp": "2026-04-20T22:03:12.226290Z"
+    },
+    {
+      "id": "TC-PROD-004",
+      "category": "product_search",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Search for gaming accessories",
+      "expected_tool": "search_products",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a15f4563...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "I found **1 gaming accessory** in our catalog:\n\n**Gaming Mechanical Keyboard RGB** (PROD-077)\n- **Price:** $159.99\n- **Category:** Gaming\n- **Rating:** 4.6/5 \u2b50\n- **Stock Status:** \u2705 In Stock\n- **Description:** Full-size mechanical gaming keyboard with hot-swappable switches, per-key RGB lighting, and detachable wrist rest.\n\nThis is a high-quality gaming keyboard with excellent features for gamers. Would you like me to:\n- Get more detailed information about this product?\n- Check inventory availability?\n- Search for other gaming products or accessories?\n- Get recommendations for other gaming items?\n\nLet me know how I can help!\n",
+      "tools_called": [
+        "search_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a15f4563edcc6aec230b255d5607",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:03:12.226299Z"
+    },
+    {
+      "id": "TC-PROD-005",
+      "category": "comparison",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Compare PROD-001 and PROD-002 side by side",
+      "expected_tool": "compare_products",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a19e5b76...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "I wasn't able to find both products in the catalog. It appears that either PROD-001 or PROD-002 (or both) may not exist in our system.\n\nLet me help you find products to compare:\n- Would you like me to **search for specific products** by name or category?\n- Or if you have different product IDs, I can try comparing those instead.\n\nWhat type of products are you interested in comparing?\n",
+      "tools_called": [
+        "compare_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a19e5b7660e05c6160ce0d2cf9a8",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:03:12.226306Z"
+    },
+    {
+      "id": "TC-PROD-001",
+      "category": "admin_operations",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Discontinue product PROD-033",
+      "expected_tool": "delete_product",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a0a3304a...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Done! Product **PROD-033 (Portable Bluetooth Speaker)** has been successfully discontinued and removed from the active catalog. \n\nNote: This is a soft delete, meaning the product record is preserved in the system but is no longer available for purchase or display to customers.\n",
+      "tools_called": [
+        "delete_product"
+      ],
+      "tool_categories": [
+        "WRITE"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a0a3304a8d3750caac75105a4704",
+      "failed_evaluators": [
+        {
+          "evaluator": "rbac_compliance",
+          "score": 0.0
+        },
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980925Z"
+    },
+    {
+      "id": "TC-PROD-002",
+      "category": "product_details",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "What are the details for product PROD-001?",
+      "expected_tool": "get_product_details",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1363937...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Here are the details for **PROD-001**:\n\n**Wireless Bluetooth Headphones**\n\n**Price:** $79.99\n\n**Category:** Audio\n\n**Description:** Premium over-ear wireless headphones with 40-hour battery life, active noise cancellation, and comfortable memory foam ear cushions.\n\n**Availability:** \u2713 In Stock (150 units available)\n\n**Rating:** 4.5/5\n\n**Specifications:**\n- **Battery Life:** 40 hours\n- **Bluetooth Version:** 5.3\n- **Driver Size:** 40mm\n- **Weight:** 250g\n- **Noise Cancellation:** Active ANC\n\n**Warranty:** 1 year manufacturer warranty\n\n**Return Policy:** 30-day return policy\n\nThis is a great option if you're looking for reliable wireless headphones with excellent battery life and active noise cancellation! Would you like to know anything else about this product, such as comparing it with other audio products or checking the full return policy details?\n",
+      "tools_called": [
+        "get_product_details"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a1363937d1491bb029254aae13ef",
+      "failed_evaluators": [
+        {
+          "evaluator": "rbac_compliance",
+          "score": 0.3
+        },
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980945Z"
+    },
+    {
+      "id": "TC-PROD-004",
+      "category": "product_search",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Do you have any smart home devices?",
+      "expected_tool": "search_products",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1a732a2...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Yes, we do have smart home and smart devices! Here's what I found:\n\n**1. Smart Watch Pro** (PROD-015)\n   - **Price:** $299.99\n   - **Category:** Wearables\n   - **Rating:** 4.7/5 \u2b50\n   - **In Stock:** Yes\n   - **Description:** Advanced smartwatch with health monitoring, GPS, water resistance up to 50m, and 7-day battery life.\n\n**2. Watch Band - Leather** (PROD-016)\n   - **Price:** $29.99\n   - **Category:** Accessories\n   - **Rating:** 4.3/5 \u2b50\n   - **In Stock:** Yes\n   - **Description:** Premium genuine leather watch band compatible with Smart Watch Pro. Available in black, brown, and tan.\n\nWould you like more details about either of these products, or would you like me to search for other types of smart devices? I can also help you compare products or check inventory availability.\n",
+      "tools_called": [
+        "search_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a1a732a2463036cc6970332de3d7",
+      "failed_evaluators": [
+        {
+          "evaluator": "goal_success",
+          "score": 0.25
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980962Z"
+    },
+    {
+      "id": "TC-PROD-005",
+      "category": "return_policy",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "What's the return policy for PROD-005?",
+      "expected_tool": "get_return_policy",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1b70dea...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Here's the return policy for PROD-005:\n\n**General Return Policy:**\n- **Return Window:** 30 days from purchase\n- **Condition Required:** Items must be unused and in original packaging\n- **Refund Method:** Original payment method\n- **Refund Timeline:** 5-7 business days after we receive your return\n\n**Important Exceptions:**\n- **Electronics:** Must be factory sealed for a full refund\n- **Clearance Items:** Final sale, no returns accepted\n- **Personalized Items:** Non-returnable\n\n**Return Process:**\n1. Initiate a return request online or contact customer service\n2. Receive a prepaid return shipping label via email\n3. Pack the item securely in its original packaging\n4. Drop off at the carrier location\n5. Refund is processed within 5-7 business days of receipt\n\nIf you have any questions about this policy or need to start a return, feel free to ask!\n",
+      "tools_called": [
+        "get_return_policy"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a1b70dea867379b71cef29d00d0b",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980970Z"
+    },
+    {
+      "id": "TC-PROD-006",
+      "category": "unknown",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Delete product PROD-001",
+      "expected_tool": null,
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1ec193b...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "I appreciate you reaching out, but I don't have the ability to delete products or make any modifications to the catalog. Deleting products requires administrator privileges, which are restricted to authorized staff members only.\n\nIf you need to delete or modify a product in the catalog, please contact your store administrator or the product management team. They'll have the necessary permissions to make those changes.\n\nIs there anything else I can help you with, such as searching for products, checking inventory, or getting product recommendations?",
+      "tools_called": [],
+      "tool_categories": [],
+      "source": "production_feedback",
+      "trace_id": "69e6a1ec193bea704852f5de1fb49bc5",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980977Z"
+    },
+    {
+      "id": "TC-PROD-007",
+      "category": "product_search",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Show me laptop options in your catalog",
+      "expected_tool": "search_products",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a1fb3853...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Unfortunately, it appears we don't currently have laptops or computers in our catalog at this time. \n\n**What I can help you with:**\n- Search for other product categories (electronics, accessories, etc.)\n- Get product recommendations based on a specific category and price range\n- Help you find other items you might be interested in\n\nWould you like me to:\n1. Search for a different type of product?\n2. Show you what product categories we do have available?\n3. Help you find something else?\n",
+      "tools_called": [
+        "search_products",
+        "search_products",
+        "search_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a1fb3853752e121276440af94707",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980986Z"
+    },
+    {
+      "id": "TC-PROD-008",
+      "category": "unknown",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "I need a gift recommendation under $150",
+      "expected_tool": null,
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a23045d9...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "I'd be happy to help you find a gift under $150! To give you the best recommendations, could you tell me a bit more about what you're looking for?\n\n- **Who is the gift for?** (e.g., friend, family member, colleague)\n- **What are their interests?** (e.g., tech, home & garden, sports, beauty, books, etc.)\n- **Any specific category in mind?**\n\nOr if you'd prefer, I can search for popular gift items across different categories within your budget. Just let me know what sounds good to you!",
+      "tools_called": [],
+      "tool_categories": [],
+      "source": "production_feedback",
+      "trace_id": "69e6a23045d975ea7bbbc85806669bf9",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.980991Z"
+    },
+    {
+      "id": "TC-PROD-009",
+      "category": "recommendations",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Recommend electronics under $200",
+      "expected_tool": "get_product_recommendations",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a2387173...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "It looks like there are currently no electronics products available under $200 in our catalog. \n\nWould you like me to:\n1. **Search for electronics** without a price limit to see what's available?\n2. **Increase the budget** to see what electronics options are available?\n3. **Search for a specific type of electronics** (like headphones, chargers, cables, etc.)?\n\nLet me know how I can help you find the right product!\n",
+      "tools_called": [
+        "get_product_recommendations"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a2387173a1281fed54d85b41565e",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.3
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.981000Z"
+    },
+    {
+      "id": "TC-PROD-010",
+      "category": "product_search",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "Compare all products in the Electronics category",
+      "expected_tool": "search_products",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a24a57e5...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "I apologize, but it appears that either:\n1. There are currently no products in the Electronics category in our catalog, or\n2. The product database may be empty or not yet populated\n\nCould you try one of the following:\n- **Search for a specific product** - If you have a particular item in mind (like \"laptop,\" \"headphones,\" \"smartphone,\" etc.), I can search for that\n- **Browse by category** - Let me know if you'd like to explore a different category\n- **Get recommendations** - I can suggest products based on your budget and preferences\n\nWhat would you like to do?\n",
+      "tools_called": [
+        "search_products",
+        "search_products",
+        "search_products"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a24a57e5dd560a5d62cf6dd0b38b",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.981010Z"
+    },
+    {
+      "id": "TC-PROD-011",
+      "category": "product_details",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "What are the details for product PROD-001?",
+      "expected_tool": "get_product_details",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a365641e...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Here are the details for **PROD-001**:\n\n**Wireless Bluetooth Headphones**\n\n**Price:** $79.99\n\n**Category:** Audio\n\n**Description:** Premium over-ear wireless headphones with 40-hour battery life, active noise cancellation, and comfortable memory foam ear cushions.\n\n**Specifications:**\n- Battery Life: 40 hours\n- Bluetooth Version: 5.3\n- Driver Size: 40mm\n- Weight: 250g\n- Noise Cancellation: Active ANC\n\n**Availability:** \u2713 In Stock (150 units available)\n\n**Customer Rating:** 4.5/5\n\n**Warranty:** 1 year manufacturer warranty\n\n**Return Policy:** 30-day return policy\n\nThis is a great option if you're looking for quality wireless headphones with excellent battery life and noise cancellation features! Would you like to check inventory, compare with other products, or need any additional information?\n",
+      "tools_called": [
+        "get_product_details"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a365641e684d1c5bb16b23c7f41c",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.981017Z"
+    },
+    {
+      "id": "TC-PROD-012",
+      "category": "return_policy",
+      "subcategory": "production_feedback",
+      "difficulty": "medium",
+      "role": "customer",
+      "input": "What is the return policy?",
+      "expected_tool": "get_return_policy",
+      "expected_tool_parameters": {},
+      "expected_output_contains": [],
+      "expected_behavior": "allow",
+      "ground_truth": "NEEDS_HUMAN_ANNOTATION",
+      "failure_mode": null,
+      "notes": "Auto-generated from production failure (trace 69e6a4d71c1c...)",
+      "reference_answer": "",
+      "must_have_facts": [],
+      "expected_output": "NEEDS_HUMAN_ANNOTATION",
+      "actual_agent_response": "Here's our general return policy:\n\n**Return Window:** 30 days from purchase\n\n**Condition Requirements:** Items must be unused and in original packaging\n\n**Refund Method:** Refunded to your original payment method\n\n**Refund Timeline:** 5-7 business days after we receive your return\n\n**Return Process:**\n1. Initiate a return request online or contact customer service\n2. Receive a prepaid return shipping label via email\n3. Pack the item securely in its original packaging\n4. Drop off at a carrier location\n5. Refund is processed within 5-7 business days of receipt\n\n**Important Exceptions:**\n- **Electronics:** Must be factory sealed for a full refund\n- **Clearance Items:** Final sale - no returns accepted\n- **Personalized Items:** Non-returnable\n\nIf you have questions about a specific product's return policy or need to initiate a return, feel free to let me know the product ID and I can provide more details!\n",
+      "tools_called": [
+        "get_return_policy"
+      ],
+      "tool_categories": [
+        "READ"
+      ],
+      "source": "production_feedback",
+      "trace_id": "69e6a4d71c1cf4b161ca56a120ace7ab",
+      "failed_evaluators": [
+        {
+          "evaluator": "tool_parameter_accuracy",
+          "score": 0.0
+        }
+      ],
+      "timestamp": "2026-04-20T22:24:39.981024Z"
     }
   ],
   "categories": {

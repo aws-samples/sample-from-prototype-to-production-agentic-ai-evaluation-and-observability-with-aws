@@ -138,7 +138,15 @@ The workshop teaches a layered evaluation approach — the **Evaluation Pyramid*
 
 ## Workshop Modules
 
-### Module 1: Single Agent Prototype with RBAC (25 min) [Pyramid: —]
+### Module 0: Environment Setup
+**Directory**: `00-prerequisites/`
+
+Set up the workshop environment:
+- Install Python dependencies with `uv sync`
+- Provision DynamoDB tables and load sample data
+- Verify AWS credentials, Bedrock model access, and infrastructure
+
+### Module 1: Single Agent Prototype with RBAC [Pyramid: —]
 **Directory**: `01-single-agent-prototype/`
 
 Build a single product catalog agent with role-based access control:
@@ -148,7 +156,7 @@ Build a single product catalog agent with role-based access control:
 - Validate access control boundaries — customers cannot perform admin operations
 - Preview how local RBAC maps to AgentCore Identity JWT auth in production
 
-### Module 2: Evaluation & Baseline (35-40 min) [Pyramid: Layer 1, 2, 3]
+### Module 2: Evaluation & Baseline [Pyramid: Layer 1, 2, 3]
 **Directory**: `02-evaluation-baseline/`
 
 > **If short on time, run only the first 10 test cases** in notebook 02b to get a meaningful baseline in ~15 min.
@@ -165,7 +173,7 @@ Establish quality baselines before deployment:
 
 > **Module 02a (DeepEval) is optional** — it demonstrates an alternative evaluation framework. The core workshop path uses strands-evals (Module 02b) which integrates with AgentCore in later modules.
 
-### Module 3: Production Deployment (20 min) [Pyramid: —]
+### Module 3: Production Deployment [Pyramid: —]
 **Directory**: `03-production-deployment/`
 
 Deploy agents to AWS with full observability:
@@ -174,7 +182,7 @@ Deploy agents to AWS with full observability:
 - Deploy with auto-instrumented OTEL tracing
 - Verify deployment with test invocations
 
-### Module 4: Online Evaluation & Observability (30 min) [Pyramid: Layer 2]
+### Module 4: Online Evaluation & Observability [Pyramid: Layer 2]
 **Directory**: `04-online-eval-observability/`
 
 Monitor and evaluate agents in production (8 steps):
@@ -186,7 +194,7 @@ Monitor and evaluate agents in production (8 steps):
 
 > **Note:** On-demand evaluation via the Evaluate API requires broader scope configuration. This module uses online evaluation which runs automatically on every agent invocation.
 
-### Module 5: Production Batch Evaluation (30 min) [Pyramid: Layer 1, 2]
+### Module 5: Production Batch Evaluation [Pyramid: Layer 1, 2]
 **Directory**: `05-production-batch-evaluation/`
 
 Evaluate production traffic at scale:
@@ -249,6 +257,7 @@ The workshop teaches you to build domain-specific evaluators:
 ### AWS Services Required
 - Amazon Bedrock (Claude Sonnet 4.6)
 - Amazon Bedrock AgentCore (Runtime, Gateway)
+- Amazon DynamoDB
 - Amazon CloudWatch
 - Amazon S3
 - Amazon Kinesis Firehose
@@ -292,42 +301,6 @@ After completing this workshop, you'll understand:
 
 ---
 
-## CI/CD Integration
-
-The workshop includes scripts for integrating agent evaluation into your CI/CD pipeline:
-
-```bash
-# Run deterministic checks only (fast, zero LLM cost)
-python scripts/run_evaluation.py --level deterministic --threshold 1.0 --ci
-
-# Run security-critical categories with zero tolerance
-python scripts/run_evaluation.py --level deterministic --category adversarial,rbac_boundary --threshold 1.0 --ci
-
-# Run full evaluation and save results
-python scripts/run_evaluation.py --output eval_results.json
-
-# Compare against a baseline (detect regressions)
-python scripts/compare_baseline.py --current eval_results.json --baseline baseline.json --max-regression 0.05 --ci
-```
-
-**CI/CD Gates:**
-
-| Gate | Level | Threshold | Purpose |
-|------|-------|-----------|---------|
-| **Gate 1** | Deterministic | 100% (hard) | Basic correctness — tool selection, keyword checks |
-| **Gate 2** | Security | 100% (hard) | RBAC + adversarial — zero tolerance for security failures |
-| **Gate 3** | LLM-as-Judge | 5% regression (soft) | Quality metrics — allows minor variation |
-
-**Getting started:** Generate a baseline first by running Module 02b, then save results:
-```bash
-python scripts/run_evaluation.py --output baseline_results.json
-```
-Subsequent PRs will be compared against this baseline. Gate 3 (LLM-judge regression) is skipped if no baseline file exists.
-
-See `.github/workflows/agent-eval.yml` for a complete GitHub Actions example.
-
----
-
 ## Additional Resources
 
 - [Strands Agents Documentation](https://strandsagents.com/)
@@ -335,6 +308,10 @@ See `.github/workflows/agent-eval.yml` for a complete GitHub Actions example.
 
 ---
 
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
 ## License
 
-This workshop is provided for educational purposes. See LICENSE file for details.
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
