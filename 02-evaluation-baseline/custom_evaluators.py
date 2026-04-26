@@ -7,7 +7,11 @@ aligned with the single Product Catalog Agent architecture with RBAC.
 
 from strands_evals.evaluators import OutputEvaluator
 from strands.models.model import Model
+from strands.models.bedrock import BedrockModel
 from typing import Optional, Union
+
+# Default judge model — 'global.' prefix works in all AWS regions.
+DEFAULT_JUDGE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
 
 
 class GoalSuccessEvaluator(OutputEvaluator):
