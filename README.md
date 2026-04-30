@@ -1,7 +1,7 @@
 # From Prototype to Production with AWS
 ## Agentic AI Evaluation and Observability Workshop
 
-Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor AI agents using AWS Bedrock AgentCore — starting with a single agent with RBAC and progressing to production deployment with observability.
+Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor AI agents using AWS Bedrock AgentCore — starting with a single agent with RBAC and progressing to production deployment with observability. Workshop instruciton is [here](https://catalog.us-east-1.prod.workshops.aws/workshops/927fb19e-6733-4986-904c-3e63b28c21e7/en-US). 
 
 ---
 
