@@ -517,9 +517,13 @@ def create_product(
                 'message': f'Product {product_id} already exists. Use update_product to modify it.'
             })
 
-        # Parse specifications
+        # Validate specifications is valid JSON, then store as a JSON string to match
+        # the seed data schema (CDK data_loader calls json.dumps() before put_item).
+        # Storing as a native Map here would produce a heterogeneous specifications
+        # column across products and break readers that assume `str`.
         try:
-            specs = json.loads(specifications) if isinstance(specifications, str) else specifications
+            specs_obj = json.loads(specifications) if isinstance(specifications, str) else specifications
+            specs_str = specifications if isinstance(specifications, str) else json.dumps(specs_obj)
         except json.JSONDecodeError:
             return json.dumps({
                 'success': False,
@@ -533,7 +537,7 @@ def create_product(
             'category': category,
             'price': Decimal(str(price)),
             'description': description,
-            'specifications': specs,
+            'specifications': specs_str,
             'in_stock': stock_quantity > 0,
             'stock_quantity': stock_quantity,
             'rating': Decimal('0'),
@@ -628,8 +632,16 @@ def update_product(product_id: str, updates: str) -> str:
                 expr_values[safe_value] = Decimal(str(value))
             elif field == 'rating':
                 expr_values[safe_value] = Decimal(str(value))
-            elif field == 'specifications' and isinstance(value, str):
-                expr_values[safe_value] = json.loads(value)
+            elif field == 'specifications':
+                # Store specifications as a JSON string to match the seed schema
+                # (see create_product). Accept either a raw JSON string from the
+                # caller or a dict that we need to serialize.
+                if isinstance(value, str):
+                    # Validate but keep as string
+                    json.loads(value)
+                    expr_values[safe_value] = value
+                else:
+                    expr_values[safe_value] = json.dumps(value)
             else:
                 expr_values[safe_value] = value
 
