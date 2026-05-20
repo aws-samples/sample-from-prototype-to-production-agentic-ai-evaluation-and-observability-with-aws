@@ -31,6 +31,8 @@ If the agent predicts `{ product:shipping, issue:delivery, sentiment:negative }`
 
 **Rule of thumb:** Subset accuracy is almost always too strict for production reporting. Default to per-label F1 plus macro-F1 plus Hamming loss. Add Jaccard if you need a single per-item score for dashboards.
 
+**Watch your rarest labels specifically.** Macro-F1 averages performance across labels, but a label that appears in 2% of samples can have F1 = 0 and barely move the macro number if you have 50 labels. Always read the per-label table alongside any aggregate, and pay extra attention to the bottom three labels by frequency.
+
 ## Hierarchical labels need a hierarchical view
 
 The customer feedback example above has structure: `product:*`, `issue:*`, `sentiment:*`, `urgency:*` are not interchangeable categories. Confusing two `product:*` labels is a different kind of error than confusing a `product:*` with a `sentiment:*`.
@@ -52,7 +54,7 @@ Most of the LLM-classifier caveats from [`../single-label-classification/`](../s
 
 ## Connection to retrieval
 
-Multi-label classification and retrieval evaluation share the same math. When a RAG system retrieves a set of chunks for a query, the ground truth is a set of relevant chunks, and the question "how many of the correct chunks did you find" is recall, while "how many of the chunks you returned were actually relevant" is precision. The metrics in this section, particularly per-item Jaccard and macro-F1, are exactly the ones used for retrieval evaluation. See [`../../../08-rag-evaluation/retrieval/`](../../../08-rag-evaluation/retrieval/README.md) for the retrieval-specific framing.
+Multi-label classification and retrieval evaluation share the same math. When a RAG system retrieves a set of chunks for a query, the ground truth is a set of relevant chunks, and the question "how many of the correct chunks did you find" is recall, while "how many of the chunks you returned were actually relevant" is precision. The metrics in this section, particularly per-item Jaccard and macro-F1, are exactly the ones used for retrieval evaluation. The metric mechanics are the same; the operational concerns (chunk drift, query rewriting, citation faithfulness) are RAG-specific and live in module 08. See [`../../../08-rag-evaluation/retrieval/`](../../../08-rag-evaluation/retrieval/README.md) for the retrieval-specific framing.
 
 ## A self-serve checklist
 
@@ -64,3 +66,9 @@ Before you ship a multi-label classifier to production:
 4. ☐ If labels are hierarchical, compute group-level metrics on top of per-label metrics.
 5. ☐ For every label with F1 below 0.6, read 5 misclassifications and attribute the failure: prompt ambiguity, label noise, model over-tagging, or model under-tagging.
 6. ☐ Verify your output parser is not silently dropping valid label sets. Test the parser on synthetic edge cases (empty set, singleton set, full set, malformed JSON).
+
+## When to escalate to human annotation
+
+- Multiple label groups all have macro-F1 below 0.5 → the label schema itself may be the problem; the labels may not be mutually well-defined or the granularity may be wrong. Re-derive the schema with a domain expert before tuning the model.
+- A required label group's recall stays below 0.7 across prompt iterations → missing labels will reach production and degrade downstream systems silently. Rewrite the labeling guide with explicit examples and edge cases for the under-recalled labels.
+- The agent's predicted set size systematically diverges from the ground truth set size median (consistently 1–2 labels too many or too few) → this is over-tagging or under-tagging, not random error. Prompt rewrites that adjust set-size expectations (with mixed-size few-shot examples) will move the needle faster than swapping models.

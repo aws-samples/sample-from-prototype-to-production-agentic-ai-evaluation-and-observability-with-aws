@@ -12,11 +12,9 @@ Classification problems come in three shapes that are often confused. They diffe
 
 This page covers the first two. The metrics and intuitions are the same; only the number of classes changes.
 
-For balanced datasets, accuracy tells you enough. When one class dominates, you need F1 score, precision, and recall to understand whether the agent is actually performing well on the minority classes or just predicting the majority class every time.
-
 ## Choosing your metrics
 
-Most teams default to accuracy and stop there. That works when classes are balanced. In real production data like support tickets, customer feedback, or content moderation, class imbalance is the norm, not the exception. Picking the wrong metric will hide real failures.
+Most teams default to accuracy and stop there. That works when classes are balanced. In real production data like support tickets, customer feedback, or content moderation, class imbalance is the norm, not the exception. Picking the wrong metric will hide real failures, and you need F1 score, precision, and recall to understand whether the agent is actually performing well on the minority classes or just predicting the majority class every time.
 
 | Metric | What it measures | When to use | What it hides |
 |---|---|---|---|
@@ -33,6 +31,8 @@ Most teams default to accuracy and stop there. That works when classes are balan
 ## A worked example: support ticket intent classification
 
 Consider a customer support agent that classifies incoming tickets into one of 11 intent categories: `REFUND`, `INVOICE`, `DELIVERY`, `SHIPPING`, `ACCOUNT`, `CONTACT`, `ORDER`, `PAYMENT`, `FEEDBACK`, `CANCELLATION_FEE`, and `NEWSLETTER`. We evaluate on 220 samples drawn from the public [Bitext customer support dataset](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset), with class distribution roughly 6.3:1 between the most and least frequent classes.
+
+![Class distribution across the 11 intents, showing the 6.3:1 imbalance](./figures/fig4_class_imbalance.png)
 
 A zero-shot Claude Sonnet classifier produces these aggregate numbers:
 
@@ -55,7 +55,11 @@ If you stopped here, you would ship. But the per-class F1 tells a different stor
 | NEWSLETTER | 0.65 | Weak |
 | **DELIVERY** | **0.56** | **Failing** |
 
+![Per-class F1 bar chart sorted descending, with INVOICE at 1.00 and DELIVERY at 0.56](./figures/fig2_per_class_metrics.png)
+
 The per-class view surfaces what the aggregate metrics hide: `DELIVERY` and `SHIPPING` are getting confused with each other, and `NEWSLETTER` is being missed. Looking at the confusion matrix confirms this: 8 out of 20 `DELIVERY` tickets were misclassified as `SHIPPING`.
+
+![Confusion matrix for the 11-class Bitext intent classifier, with the DELIVERY-to-SHIPPING and ORDER-to-CANCEL off-diagonal cells highlighted](./figures/fig1_confusion_matrix.png)
 
 This is the production-relevant finding. Your agent is not 82% accurate uniformly; it has a specific class-pair confusion that needs attention. Possible fixes: clarify the class boundary in the prompt, add few-shot examples that distinguish the two, or merge the classes if the business doesn't actually need to distinguish them.
 
@@ -77,6 +81,8 @@ Before you trust any metric, you have to trust your labels. Even objective metri
 A useful diagnostic is **Cohen's kappa** between two annotators on the same samples. Kappa measures agreement above chance. A kappa of 1.0 means perfect agreement, 0.0 means no better than random, and below 0.6 means the labels themselves are too noisy to trust. If your two human annotators only agree 60% of the time on what counts as `REFUND` vs `CANCELLATION_FEE`, no LLM will do better, and any metric you compute against either annotator's labels is misleading.
 
 In the Bitext example above, we ran a 50-sample spot check and computed kappa across three pairs of annotators: Claude Sonnet, Claude Haiku, and the original Bitext labels. The Sonnet–Haiku kappa was 0.86, while the Bitext-original–Sonnet kappa was 0.74. Two LLMs agreed with each other more than either agreed with the dataset labels: a strong signal that the dataset itself has label noise on the class boundaries. The fix is not "tune the LLM more"; it's "audit the labels."
+
+![Cohen's kappa across three annotator pairs: Sonnet-Haiku 0.86, Bitext-Haiku 0.70, Bitext-Sonnet 0.74](./figures/fig3_kappa_comparison.png)
 
 The broader calibration loop, how to verify that an automated scorer agrees with a human expert, is covered in [`subjective/human-alignment/`](../../subjective/human-alignment/README.md). That pattern is built for LLM-as-judge, but the underlying idea applies here: your labels are an evaluator, and you have to verify that they actually match what a domain expert would say before you trust any metric computed against them.
 
