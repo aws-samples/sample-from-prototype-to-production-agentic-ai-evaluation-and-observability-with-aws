@@ -34,8 +34,6 @@ Consider a customer support agent that classifies incoming tickets into one of 1
 
 Note that production traffic for this kind of agent is rarely balanced. Real ticket distributions are skewed, with a few intents dominating and a long tail of rare categories. We balance the *evaluation* set on purpose so that every class gets equal scrutiny, then read macro-F1 (not accuracy) as the headline number because macro-F1 reports our average performance per class regardless of how often the class shows up in production.
 
-![Class distribution across the 11 intents in the evaluation set, balanced at 20 samples per class](./figures/fig4_class_imbalance.png)
-
 A zero-shot Claude Sonnet classifier produces these aggregate numbers:
 
 - **Accuracy:** 82.3%
