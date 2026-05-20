@@ -1,4 +1,4 @@
-# Claims, Sources, and Reproducibility — Module 06 Classification READMEs
+# Claims, Sources, and Reproducibility: Module 06 Classification READMEs
 
 This document tracks the empirical claims made in `single-label-classification/README.md` and `multi-label-classification/README.md`, and notes which numbers are reproducible from artifacts, which are illustrative, and which would require a fresh run to re-verify.
 
@@ -10,10 +10,10 @@ This file exists so reviewers, contributors, and customers can quickly distingui
 
 | Claim in README | Source artifact | Notes |
 |---|---|---|
-| 220 evaluation samples, 11 intent classes, ~6.3:1 class imbalance | `baseline_220.csv` | Stratified sample drawn from Bitext public dataset. Class distribution computed from the `bitext_label` column. |
+| 220 evaluation samples, 11 intent classes, balanced (20 per class) | `baseline_220.csv` | Stratified sample drawn from Bitext public dataset. Class distribution computed from the `bitext_label` column. The evaluation set is balanced on purpose so each class gets equal scrutiny; production traffic is typically skewed. |
 | Accuracy 82.3%, Macro-F1 0.81 (Claude Sonnet zero-shot) | `baseline_220.csv` (predictions in `rater_A_sonnet46` column) | Reproducible by running `predicted == ground_truth` over the file. |
-| Per-class F1 table (INVOICE 1.00 → DELIVERY 0.56) | `baseline_220.csv` | Computed via standard `sklearn.metrics.classification_report`. |
-| Confusion matrix: 8 of 20 DELIVERY → SHIPPING | `confusion_matrix.csv` | Top off-diagonal cell. |
+| Per-class F1 table (INVOICE 1.00, SUBSCRIPTION 0.98, PAYMENT 0.93, REFUND 0.91, CONTACT 0.91, ACCOUNT 0.82, FEEDBACK 0.79, CANCEL 0.74, ORDER 0.72, SHIPPING 0.60, DELIVERY 0.56) | `baseline_220.csv` | Computed via `sklearn.metrics.classification_report(digits=2)`. |
+| Confusion matrix: 8 of 20 DELIVERY → SHIPPING, 6 of 20 ORDER → CANCEL | `confusion_matrix.csv` | Top two off-diagonal cells. |
 | Sonnet–Haiku kappa 0.86, Bitext-Sonnet kappa 0.74 | `spotcheck_kappa.csv` (50 samples) | Computed via Cohen's kappa on the three label columns: `bitext_label`, `rater_A_sonnet46`, `rater_B_haiku45`. |
 
 ### Illustrative or pedagogical values

@@ -30,9 +30,11 @@ Most teams default to accuracy and stop there. That works when classes are balan
 
 ## A worked example: support ticket intent classification
 
-Consider a customer support agent that classifies incoming tickets into one of 11 intent categories: `REFUND`, `INVOICE`, `DELIVERY`, `SHIPPING`, `ACCOUNT`, `CONTACT`, `ORDER`, `PAYMENT`, `FEEDBACK`, `CANCELLATION_FEE`, and `NEWSLETTER`. We evaluate on 220 samples drawn from the public [Bitext customer support dataset](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset), with class distribution roughly 6.3:1 between the most and least frequent classes.
+Consider a customer support agent that classifies incoming tickets into one of 11 intent categories: `ACCOUNT`, `CANCEL`, `CONTACT`, `DELIVERY`, `FEEDBACK`, `INVOICE`, `ORDER`, `PAYMENT`, `REFUND`, `SHIPPING`, and `SUBSCRIPTION`. We evaluate on 220 samples drawn from the public [Bitext customer support dataset](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset), with 20 samples per class (a deliberately balanced evaluation set).
 
-![Class distribution across the 11 intents, showing the 6.3:1 imbalance](./figures/fig4_class_imbalance.png)
+Note that production traffic for this kind of agent is rarely balanced. Real ticket distributions are skewed, with a few intents dominating and a long tail of rare categories. We balance the *evaluation* set on purpose so that every class gets equal scrutiny, then read macro-F1 (not accuracy) as the headline number because macro-F1 reports our average performance per class regardless of how often the class shows up in production.
+
+![Class distribution across the 11 intents in the evaluation set, balanced at 20 samples per class](./figures/fig4_class_imbalance.png)
 
 A zero-shot Claude Sonnet classifier produces these aggregate numbers:
 
@@ -44,24 +46,24 @@ If you stopped here, you would ship. But the per-class F1 tells a different stor
 | Class | F1 | Notes |
 |---|---|---|
 | INVOICE | 1.00 | Perfect |
-| REFUND | 0.95 | Strong |
-| ACCOUNT | 0.92 | Strong |
-| PAYMENT | 0.88 | Good |
-| CONTACT | 0.85 | Good |
-| ORDER | 0.82 | Acceptable |
+| SUBSCRIPTION | 0.98 | Strong |
+| PAYMENT | 0.93 | Strong |
+| REFUND | 0.91 | Strong |
+| CONTACT | 0.91 | Strong |
+| ACCOUNT | 0.82 | Good |
 | FEEDBACK | 0.79 | Acceptable |
-| CANCELLATION_FEE | 0.74 | Borderline |
-| SHIPPING | 0.68 | Weak |
-| NEWSLETTER | 0.65 | Weak |
+| CANCEL | 0.74 | Borderline |
+| ORDER | 0.72 | Borderline |
+| SHIPPING | 0.60 | Weak |
 | **DELIVERY** | **0.56** | **Failing** |
 
 ![Per-class F1 bar chart sorted descending, with INVOICE at 1.00 and DELIVERY at 0.56](./figures/fig2_per_class_metrics.png)
 
-The per-class view surfaces what the aggregate metrics hide: `DELIVERY` and `SHIPPING` are getting confused with each other, and `NEWSLETTER` is being missed. Looking at the confusion matrix confirms this: 8 out of 20 `DELIVERY` tickets were misclassified as `SHIPPING`.
+The per-class view surfaces what the aggregate metrics hide: `DELIVERY` and `SHIPPING` are getting confused with each other, and `ORDER` is being confused with `CANCEL`. Looking at the confusion matrix confirms this: 8 out of 20 `DELIVERY` tickets were misclassified as `SHIPPING`, and 6 out of 20 `ORDER` tickets were misclassified as `CANCEL`.
 
 ![Confusion matrix for the 11-class Bitext intent classifier, with the DELIVERY-to-SHIPPING and ORDER-to-CANCEL off-diagonal cells highlighted](./figures/fig1_confusion_matrix.png)
 
-This is the production-relevant finding. Your agent is not 82% accurate uniformly; it has a specific class-pair confusion that needs attention. Possible fixes: clarify the class boundary in the prompt, add few-shot examples that distinguish the two, or merge the classes if the business doesn't actually need to distinguish them.
+This is the production-relevant finding. Your agent is not 82% accurate uniformly; it has specific class-pair confusions that need attention. Possible fixes: clarify the class boundary in the prompt, add few-shot examples that distinguish the two, or merge the classes if the business doesn't actually need to distinguish them.
 
 ## When the classifier is an LLM
 
@@ -78,7 +80,7 @@ For calibrating an LLM judge against human judgment, the same correlation-based 
 
 Before you trust any metric, you have to trust your labels. Even objective metrics depend on label quality, and labels are often produced subjectively, by a human annotator, a heuristic, or a previous LLM. This is the most common failure mode for LLM classification evaluation in production.
 
-A useful diagnostic is **Cohen's kappa** between two annotators on the same samples. Kappa measures agreement above chance. A kappa of 1.0 means perfect agreement, 0.0 means no better than random, and below 0.6 means the labels themselves are too noisy to trust. If your two human annotators only agree 60% of the time on what counts as `REFUND` vs `CANCELLATION_FEE`, no LLM will do better, and any metric you compute against either annotator's labels is misleading.
+A useful diagnostic is **Cohen's kappa** between two annotators on the same samples. Kappa measures agreement above chance. A kappa of 1.0 means perfect agreement, 0.0 means no better than random, and below 0.6 means the labels themselves are too noisy to trust. If your two human annotators only agree 60% of the time on what counts as `REFUND` vs `CANCEL`, no LLM will do better, and any metric you compute against either annotator's labels is misleading.
 
 In the Bitext example above, we ran a 50-sample spot check and computed kappa across three pairs of annotators: Claude Sonnet, Claude Haiku, and the original Bitext labels. The Sonnet–Haiku kappa was 0.86, while the Bitext-original–Sonnet kappa was 0.74. Two LLMs agreed with each other more than either agreed with the dataset labels: a strong signal that the dataset itself has label noise on the class boundaries. The fix is not "tune the LLM more"; it's "audit the labels."
 
