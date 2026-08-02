@@ -5,7 +5,7 @@ These evaluators assess agent responses for domain-specific quality metrics
 aligned with the single Product Catalog Agent architecture with RBAC.
 """
 
-from strands_evals.evaluators import OutputEvaluator
+from strands_evals.evaluators import OutputEvaluator, TrajectoryEvaluator
 from strands.models.model import Model
 from strands.models.bedrock import BedrockModel
 from typing import Optional, Union
@@ -116,14 +116,24 @@ Respond with a JSON object containing 'score' (float 0-1) and 'reasoning' (strin
         super().__init__(rubric=rubric, model=model)
 
 
-class ToolParameterAccuracyEvaluator(OutputEvaluator):
+class ToolParameterAccuracyEvaluator(TrajectoryEvaluator):
     """
     Evaluates whether the agent selected the correct tool and passed
     appropriate parameters for the user's request.
+
+    This is a TrajectoryEvaluator (not an OutputEvaluator): it judges the
+    REAL tool calls recorded in the trajectory. Judging tool usage from the
+    response text alone makes the judge hallucinate which tools were called.
+    The task function must return {"output": ..., "trajectory": [...]}, where
+    trajectory is the list of tool calls made (name + parameters).
     """
 
     def __init__(self, model: Union[Model, str, None] = None):
         rubric = """You are evaluating whether the Product Catalog Agent selected the correct tool and used appropriate parameters.
+
+The <Trajectory> contains the ACTUAL tool calls the agent made (tool name and parameters).
+Base your evaluation ONLY on the tool calls listed in the trajectory - do NOT infer
+tool usage from the response text.
 
 Available tools and their key parameters:
 - search_products(query, category, max_results) - search the product catalog
