@@ -9,11 +9,15 @@ WORKDIR /app
 RUN pip install --no-cache-dir --upgrade pip
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+# --chmod=644 so the non-root runtime user can read files even when the
+# checkout has restrictive permissions (e.g. umask 077); COPY otherwise
+# preserves source file modes and the container crash-loops with
+# PermissionError on /app/agent.py.
+COPY --chmod=644 requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy agent code
-COPY product_catalog_agent.py /app/agent.py
+COPY --chmod=644 product_catalog_agent.py /app/agent.py
 
 # Create non-root user for security
 RUN useradd -m -u 1000 bedrock_agentcore
