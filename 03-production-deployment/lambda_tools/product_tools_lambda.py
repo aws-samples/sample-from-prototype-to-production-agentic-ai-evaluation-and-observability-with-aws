@@ -36,6 +36,21 @@ def get_products_table():
     return dynamodb.Table(table_name)
 
 
+def get_valid_product_ids() -> list:
+    """Get the list of valid product IDs from the catalog (for not-found error recovery)."""
+    try:
+        table = get_products_table()
+        response = table.scan(ProjectionExpression="product_id")
+        ids = [
+            i["product_id"]
+            for i in response.get("Items", [])
+            if i.get("product_id") != "POLICIES"
+        ]
+        return sorted(ids)
+    except Exception:
+        return []
+
+
 # ===========================================================================
 # READ TOOLS - Available to all roles (customer + admin)
 # ===========================================================================
@@ -118,6 +133,7 @@ def get_product_details(product_id: str) -> dict:
                 "success": False,
                 "product_id": product_id,
                 "message": f"Product {product_id} not found.",
+                "valid_product_ids": get_valid_product_ids(),
             }
 
         product = response["Item"]
@@ -155,6 +171,7 @@ def check_inventory(product_id: str) -> dict:
                 "success": False,
                 "product_id": product_id,
                 "message": f"Product {product_id} not found in inventory system.",
+                "valid_product_ids": get_valid_product_ids(),
             }
 
         product = response["Item"]
@@ -262,6 +279,7 @@ def compare_products(product_ids: list) -> dict:
 
         table = get_products_table()
         products = []
+        not_found = []
         for pid in product_ids:
             response = table.get_item(Key={"product_id": pid})
             if "Item" in response:
@@ -278,18 +296,26 @@ def compare_products(product_ids: list) -> dict:
                         "warranty": p.get("warranty", "1 year"),
                     }
                 )
+            else:
+                not_found.append(pid)
 
         if len(products) < 2:
             return {
                 "success": False,
                 "message": "Could not find enough products to compare.",
+                "not_found": not_found,
+                "valid_product_ids": get_valid_product_ids(),
             }
 
-        return {
+        result = {
             "success": True,
             "comparison_count": len(products),
             "products": products,
         }
+        if not_found:
+            result["not_found"] = not_found
+            result["valid_product_ids"] = get_valid_product_ids()
+        return result
     except Exception as e:
         return {
             "success": False,
