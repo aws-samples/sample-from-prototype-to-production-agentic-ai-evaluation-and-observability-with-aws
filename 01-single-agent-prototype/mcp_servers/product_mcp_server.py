@@ -321,6 +321,23 @@ def get_product_recommendations(context: str, max_recommendations: int = 3) -> s
                 target_category = cat.title()
                 break
 
+        # For "customer bought X" contexts, recommend complementary products
+        # (e.g. Accessories to go with headphones), not same-category
+        # competitors: someone who just bought headphones needs add-ons,
+        # not another pair of headphones.
+        complementary_categories = {
+            'Audio': 'Accessories',
+            'Wearables': 'Accessories',
+            'Gaming': 'Accessories',
+            'Monitors': 'Accessories',
+            'Cameras': 'Accessories',
+            'Furniture': 'Accessories',
+            'Accessories': 'Audio',
+        }
+        purchase_indicators = ['bought', 'purchased', 'just got', 'already have', 'already own']
+        if target_category and any(ind in context_lower for ind in purchase_indicators):
+            target_category = complementary_categories.get(target_category, target_category)
+
         # Query products
         if target_category:
             response = table.query(

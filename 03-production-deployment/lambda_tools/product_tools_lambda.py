@@ -206,10 +206,45 @@ def check_inventory(product_id: str) -> dict:
 
 
 def get_product_recommendations(
-    category: str = None, price_max: float = None, limit: int = 5
+    category: str = None, price_max: float = None, limit: int = 5, context: str = None
 ) -> dict:
     """Get product recommendations based on criteria."""
     try:
+        # For "customer bought X" contexts, recommend complementary products
+        # (e.g. Accessories to go with headphones), not same-category
+        # competitors: someone who just bought headphones needs add-ons,
+        # not another pair of headphones. (Same logic as the Module 01
+        # MCP server's get_product_recommendations.)
+        if context:
+            context_lower = context.lower()
+            category_keywords = {
+                "Audio": ["headphones", "speaker", "earbuds", "audio"],
+                "Wearables": ["watch", "smartwatch", "fitness", "tracker"],
+                "Gaming": ["gaming", "keyboard", "mouse", "game"],
+                "Monitors": ["monitor", "display", "screen"],
+                "Accessories": ["cable", "hub", "stand", "accessory"],
+                "Cameras": ["camera", "webcam", "video"],
+            }
+            context_category = None
+            for cat, keywords in category_keywords.items():
+                if any(kw in context_lower for kw in keywords):
+                    context_category = cat
+                    break
+            complementary_categories = {
+                "Audio": "Accessories",
+                "Wearables": "Accessories",
+                "Gaming": "Accessories",
+                "Monitors": "Accessories",
+                "Cameras": "Accessories",
+                "Furniture": "Accessories",
+                "Accessories": "Audio",
+            }
+            purchase_indicators = ["bought", "purchased", "just got", "already have", "already own"]
+            if context_category and any(ind in context_lower for ind in purchase_indicators):
+                category = complementary_categories.get(context_category, context_category)
+            elif context_category and not category:
+                category = context_category
+
         table = get_products_table()
         response = table.scan()
         items = response.get("Items", [])
