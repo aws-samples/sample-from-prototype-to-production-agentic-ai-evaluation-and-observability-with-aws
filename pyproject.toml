@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aws-opentelemetry-distro>=0.1.0",
-    "bedrock-agentcore>=0.1.0",
+    "bedrock-agentcore>=1.18.1",
     "bedrock-agentcore-starter-toolkit>=0.1.0",
     "boto3>=1.35.100",
     "deepeval>=3.8.8",
