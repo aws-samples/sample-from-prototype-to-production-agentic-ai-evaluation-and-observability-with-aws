@@ -1056,10 +1056,11 @@ def get_product_tool_schemas() -> list:
         },
         {
             "name": "get_product_recommendations",
-            "description": "Get product recommendations based on category and price criteria",
+            "description": "Get product recommendations based on user context (e.g. a recent purchase) or category and price criteria",
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "context": {"type": "string", "description": "User context for the recommendation, e.g. 'customer bought wireless headphones, looking for accessories'"},
                     "category": {"type": "string", "description": "Product category"},
                     "price_max": {"type": "number", "description": "Maximum price filter"},
                     "limit": {"type": "integer", "description": "Max recommendations (default 5)"}

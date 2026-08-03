@@ -237,6 +237,18 @@ class InfrastructureSetup:
             })
             print(f"  ✅ Loaded store policies")
 
+        # Idempotent reset: remove test products created by notebook runs
+        # (PROD-200 in Module 01/02a, PROD-300 in Module 01). Leftovers make
+        # re-runs fail - e.g. TC-ADMIN-001's create_product hits
+        # "already exists" if PROD-200 survived a previous session.
+        for test_id in ('PROD-200', 'PROD-300'):
+            response = products_table.delete_item(
+                Key={'product_id': test_id},
+                ReturnValues='ALL_OLD'
+            )
+            if 'Attributes' in response:
+                print(f"  ✅ Reset leftover test product {test_id}")
+
     def create_ssm_parameters(self):
         """Create SSM parameters for resource discovery"""
         print("\n5. Creating SSM Parameters...")

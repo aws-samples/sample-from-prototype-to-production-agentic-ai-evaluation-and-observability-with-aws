@@ -99,6 +99,17 @@ Return Policy: {product.get('return_policy', 'Standard 30-day return policy')}
 """
 
 
+def get_valid_product_ids() -> List[str]:
+    """Get the list of valid product IDs from the catalog (for not-found error recovery)"""
+    try:
+        table = get_dynamodb_table('products')
+        response = table.scan(ProjectionExpression='product_id')
+        ids = [item['product_id'] for item in response.get('Items', []) if item.get('product_id') != 'POLICIES']
+        return sorted(ids)
+    except Exception:
+        return []
+
+
 @mcp.tool()
 def search_products(query: str, category: Optional[str] = None, max_results: int = 5) -> str:
     """
@@ -198,7 +209,8 @@ def get_product_details(product_id: str) -> str:
             return json.dumps({
                 'success': False,
                 'product_id': product_id,
-                'message': f'Product {product_id} not found in catalog.'
+                'message': f'Product {product_id} not found in catalog.',
+                'valid_product_ids': get_valid_product_ids()
             })
 
         product = response['Item']
@@ -241,7 +253,8 @@ def check_inventory(product_id: str) -> str:
             return json.dumps({
                 'success': False,
                 'product_id': product_id,
-                'message': f'Product {product_id} not found in inventory system.'
+                'message': f'Product {product_id} not found in inventory system.',
+                'valid_product_ids': get_valid_product_ids()
             })
 
         product = response['Item']
@@ -307,6 +320,23 @@ def get_product_recommendations(context: str, max_recommendations: int = 3) -> s
             if any(kw in context_lower for kw in keywords):
                 target_category = cat.title()
                 break
+
+        # For "customer bought X" contexts, recommend complementary products
+        # (e.g. Accessories to go with headphones), not same-category
+        # competitors: someone who just bought headphones needs add-ons,
+        # not another pair of headphones.
+        complementary_categories = {
+            'Audio': 'Accessories',
+            'Wearables': 'Accessories',
+            'Gaming': 'Accessories',
+            'Monitors': 'Accessories',
+            'Cameras': 'Accessories',
+            'Furniture': 'Accessories',
+            'Accessories': 'Audio',
+        }
+        purchase_indicators = ['bought', 'purchased', 'just got', 'already have', 'already own']
+        if target_category and any(ind in context_lower for ind in purchase_indicators):
+            target_category = complementary_categories.get(target_category, target_category)
 
         # Query products
         if target_category:
@@ -393,7 +423,8 @@ def compare_products(product_ids: str) -> str:
             else:
                 comparisons.append({
                     'product_id': product_id,
-                    'error': 'Product not found'
+                    'error': 'Product not found',
+                    'valid_product_ids': get_valid_product_ids()
                 })
 
         return json.dumps({

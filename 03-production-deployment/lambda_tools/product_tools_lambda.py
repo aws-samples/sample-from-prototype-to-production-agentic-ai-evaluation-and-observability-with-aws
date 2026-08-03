@@ -36,6 +36,21 @@ def get_products_table():
     return dynamodb.Table(table_name)
 
 
+def get_valid_product_ids() -> list:
+    """Get the list of valid product IDs from the catalog (for not-found error recovery)."""
+    try:
+        table = get_products_table()
+        response = table.scan(ProjectionExpression="product_id")
+        ids = [
+            i["product_id"]
+            for i in response.get("Items", [])
+            if i.get("product_id") != "POLICIES"
+        ]
+        return sorted(ids)
+    except Exception:
+        return []
+
+
 # ===========================================================================
 # READ TOOLS - Available to all roles (customer + admin)
 # ===========================================================================
@@ -118,6 +133,7 @@ def get_product_details(product_id: str) -> dict:
                 "success": False,
                 "product_id": product_id,
                 "message": f"Product {product_id} not found.",
+                "valid_product_ids": get_valid_product_ids(),
             }
 
         product = response["Item"]
@@ -155,6 +171,7 @@ def check_inventory(product_id: str) -> dict:
                 "success": False,
                 "product_id": product_id,
                 "message": f"Product {product_id} not found in inventory system.",
+                "valid_product_ids": get_valid_product_ids(),
             }
 
         product = response["Item"]
@@ -189,10 +206,45 @@ def check_inventory(product_id: str) -> dict:
 
 
 def get_product_recommendations(
-    category: str = None, price_max: float = None, limit: int = 5
+    category: str = None, price_max: float = None, limit: int = 5, context: str = None
 ) -> dict:
     """Get product recommendations based on criteria."""
     try:
+        # For "customer bought X" contexts, recommend complementary products
+        # (e.g. Accessories to go with headphones), not same-category
+        # competitors: someone who just bought headphones needs add-ons,
+        # not another pair of headphones. (Same logic as the Module 01
+        # MCP server's get_product_recommendations.)
+        if context:
+            context_lower = context.lower()
+            category_keywords = {
+                "Audio": ["headphones", "speaker", "earbuds", "audio"],
+                "Wearables": ["watch", "smartwatch", "fitness", "tracker"],
+                "Gaming": ["gaming", "keyboard", "mouse", "game"],
+                "Monitors": ["monitor", "display", "screen"],
+                "Accessories": ["cable", "hub", "stand", "accessory"],
+                "Cameras": ["camera", "webcam", "video"],
+            }
+            context_category = None
+            for cat, keywords in category_keywords.items():
+                if any(kw in context_lower for kw in keywords):
+                    context_category = cat
+                    break
+            complementary_categories = {
+                "Audio": "Accessories",
+                "Wearables": "Accessories",
+                "Gaming": "Accessories",
+                "Monitors": "Accessories",
+                "Cameras": "Accessories",
+                "Furniture": "Accessories",
+                "Accessories": "Audio",
+            }
+            purchase_indicators = ["bought", "purchased", "just got", "already have", "already own"]
+            if context_category and any(ind in context_lower for ind in purchase_indicators):
+                category = complementary_categories.get(context_category, context_category)
+            elif context_category and not category:
+                category = context_category
+
         table = get_products_table()
         response = table.scan()
         items = response.get("Items", [])
@@ -262,6 +314,7 @@ def compare_products(product_ids: list) -> dict:
 
         table = get_products_table()
         products = []
+        not_found = []
         for pid in product_ids:
             response = table.get_item(Key={"product_id": pid})
             if "Item" in response:
@@ -278,18 +331,26 @@ def compare_products(product_ids: list) -> dict:
                         "warranty": p.get("warranty", "1 year"),
                     }
                 )
+            else:
+                not_found.append(pid)
 
         if len(products) < 2:
             return {
                 "success": False,
                 "message": "Could not find enough products to compare.",
+                "not_found": not_found,
+                "valid_product_ids": get_valid_product_ids(),
             }
 
-        return {
+        result = {
             "success": True,
             "comparison_count": len(products),
             "products": products,
         }
+        if not_found:
+            result["not_found"] = not_found
+            result["valid_product_ids"] = get_valid_product_ids()
+        return result
     except Exception as e:
         return {
             "success": False,
