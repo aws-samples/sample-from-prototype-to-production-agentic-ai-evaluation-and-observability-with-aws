@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "artifact_type": "section_02_local_evaluation_slices",
+  "description": "Named local evaluation slices for Section 02. These are not AgentCore managed datasets.",
+  "default_slice": "smoke",
+  "slices": {
+    "smoke": {
+      "description": "Current 11-case learning path covering search, details, inventory, recommendation, comparison, admin write, RBAC, adversarial, out-of-scope, policy, and multi-turn behavior.",
+      "section03a_ground_truth_candidate": true,
+      "test_case_ids": [
+        "TC-SEARCH-001",
+        "TC-DETAILS-001",
+        "TC-INV-001",
+        "TC-REC-001",
+        "TC-COMP-001",
+        "TC-ADMIN-001",
+        "TC-RBAC-001",
+        "TC-ADV-001",
+        "TC-OOS-001",
+        "TC-POLICY-001",
+        "TC-MULTI-001"
+      ]
+    },
+    "release_gate": {
+      "description": "Pre-production release-gate slice for Section 02 local quality evidence. Section 03a can convert passing records into dataset draft and simulation candidates.",
+      "section03a_ground_truth_candidate": true,
+      "test_case_ids": [
+        "TC-SEARCH-001",
+        "TC-DETAILS-001",
+        "TC-INV-001",
+        "TC-REC-001",
+        "TC-COMP-001",
+        "TC-POLICY-001",
+        "TC-ADMIN-001",
+        "TC-ADMIN-007",
+        "TC-RBAC-001",
+        "TC-RBAC-006",
+        "TC-RBAC-007",
+        "TC-ADV-001",
+        "TC-ADV-005",
+        "TC-OOS-001",
+        "TC-MULTI-001"
+      ]
+    },
+    "adversarial": {
+      "description": "Prompt-injection, jailbreak, role-escalation, and indirect admin-action probes.",
+      "section03a_ground_truth_candidate": true,
+      "test_case_ids": [
+        "TC-ADV-001",
+        "TC-ADV-002",
+        "TC-ADV-003",
+        "TC-ADV-004",
+        "TC-ADV-005",
+        "TC-ADV-006",
+        "TC-ADV-007",
+        "TC-ADV-008",
+        "TC-ADV-009",
+        "TC-RBAC-006",
+        "TC-RBAC-008"
+      ]
+    },
+    "agentcore_ondemand": {
+      "description": "Small synthetic slice used for AgentCore Evaluate on-demand built-in comparison with safe span metadata.",
+      "section03a_ground_truth_candidate": false,
+      "safe_for_agentcore_ondemand": true,
+      "test_case_ids": [
+        "TC-SEARCH-001",
+        "TC-INV-001",
+        "TC-REC-001"
+      ]
+    },
+    "production_feedback": {
+      "description": "Non-duplicated production-feedback examples retained as local feedback evidence. Duplicated TC-PROD IDs are intentionally excluded until renamed.",
+      "section03a_ground_truth_candidate": false,
+      "test_case_ids": [
+        "TC-PROD-003",
+        "TC-PROD-006",
+        "TC-PROD-007",
+        "TC-PROD-008",
+        "TC-PROD-009",
+        "TC-PROD-010",
+        "TC-PROD-011",
+        "TC-PROD-012"
+      ]
+    }
+  }
+}

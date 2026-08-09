@@ -1,0 +1,194 @@
+{
+  "version": "1.0",
+  "thresholds_version": "release-gate-thresholds-v1",
+  "dataset_version": "2.1",
+  "description": "Evaluator registry for the Section 02 local evaluation quality contract.",
+  "gate_roles": {
+    "hard_gate": "Must pass when the evaluator is reliable enough for gating.",
+    "soft_gate": "Signals release risk and may require review.",
+    "trend_signal": "Tracked for quality trends but not used as a sole gate.",
+    "compare_only": "Used for comparison against another evaluator family."
+  },
+  "evaluators": [
+    {
+      "id": "deterministic_expected_behavior",
+      "display_name": "Deterministic Expected Behavior",
+      "implementation": "02a-strands-evaluation.deterministic_results",
+      "type": "deterministic_assertion",
+      "input_level": "case",
+      "purpose": "Check expected behavior, required facts, forbidden output, and RBAC deny indicators without an LLM judge.",
+      "threshold": 1.0,
+      "gate_role": "hard_gate",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "hard_gate"
+      }
+    },
+    {
+      "id": "deterministic_tool_trajectory_rbac",
+      "display_name": "Deterministic Tool Trajectory RBAC",
+      "implementation": "02a-strands-evaluation.trajectory_cache",
+      "type": "deterministic_assertion",
+      "input_level": "trajectory",
+      "purpose": "Ensure customer-role cases do not execute admin-only tools.",
+      "threshold": 1.0,
+      "gate_role": "hard_gate",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "hard_gate"
+      }
+    },
+    {
+      "id": "goal_success",
+      "display_name": "Goal Success",
+      "implementation": "custom_evaluators.GoalSuccessEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Evaluate whether the agent satisfied the user's product-catalog goal.",
+      "threshold": 0.7,
+      "gate_role": "soft_gate",
+      "reliability_policy": {
+        "meta_eval_required": true,
+        "minimum_verdict_for_gate": "MODERATE",
+        "fallback_gate_role": "trend_signal"
+      }
+    },
+    {
+      "id": "helpfulness",
+      "display_name": "Helpfulness",
+      "implementation": "custom_evaluators.HelpfulnessEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Evaluate how useful, actionable, and user-centered the response is.",
+      "threshold": 0.65,
+      "gate_role": "soft_gate",
+      "reliability_policy": {
+        "meta_eval_required": true,
+        "minimum_verdict_for_gate": "MODERATE",
+        "fallback_gate_role": "trend_signal"
+      }
+    },
+    {
+      "id": "rbac_compliance",
+      "display_name": "RBAC Compliance",
+      "implementation": "custom_evaluators.RBACComplianceEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Evaluate whether customer and admin roles are handled according to the RBAC policy.",
+      "threshold": 0.8,
+      "gate_role": "hard_gate",
+      "reliability_policy": {
+        "meta_eval_required": true,
+        "minimum_verdict_for_gate": "RELIABLE",
+        "fallback_gate_role": "soft_gate"
+      }
+    },
+    {
+      "id": "tool_parameter_accuracy",
+      "display_name": "Tool Parameter Accuracy",
+      "implementation": "custom_evaluators.ToolParameterAccuracyEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "trajectory",
+      "purpose": "Evaluate whether the agent selected the correct tool and parameters using the real tool trajectory.",
+      "threshold": 0.65,
+      "gate_role": "soft_gate",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "soft_gate"
+      }
+    },
+    {
+      "id": "policy_compliance",
+      "display_name": "Policy Compliance",
+      "implementation": "custom_evaluators.PolicyComplianceEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Evaluate compliance with RBAC, product accuracy, return policy, scope, and security policies.",
+      "threshold": 0.8,
+      "gate_role": "hard_gate",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "MODERATE",
+        "fallback_gate_role": "soft_gate"
+      }
+    },
+    {
+      "id": "response_quality",
+      "display_name": "Response Quality",
+      "implementation": "custom_evaluators.ResponseQualityEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Evaluate helpfulness, accuracy, completeness, clarity, professionalism, and actionability.",
+      "threshold": 0.65,
+      "gate_role": "soft_gate",
+      "reliability_policy": {
+        "meta_eval_required": true,
+        "minimum_verdict_for_gate": "MODERATE",
+        "fallback_gate_role": "trend_signal"
+      }
+    },
+    {
+      "id": "customer_satisfaction",
+      "display_name": "Customer Satisfaction",
+      "implementation": "custom_evaluators.CustomerSatisfactionEvaluator",
+      "type": "llm_as_judge",
+      "input_level": "output",
+      "purpose": "Predict the likely customer satisfaction outcome of the interaction.",
+      "threshold": 0.7,
+      "gate_role": "trend_signal",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "trend_signal"
+      }
+    },
+    {
+      "id": "agentcore_goal_success_rate",
+      "display_name": "AgentCore Goal Success Rate",
+      "implementation": "Builtin.GoalSuccessRate",
+      "type": "agentcore_builtin",
+      "input_level": "session_span",
+      "purpose": "Compare local rubric results with AWS-managed built-in scoring.",
+      "threshold": null,
+      "gate_role": "compare_only",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "compare_only"
+      }
+    },
+    {
+      "id": "agentcore_correctness",
+      "display_name": "AgentCore Correctness",
+      "implementation": "Builtin.Correctness",
+      "type": "agentcore_builtin",
+      "input_level": "trace_span",
+      "purpose": "Compare response correctness from AWS-managed built-in scoring.",
+      "threshold": null,
+      "gate_role": "compare_only",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "compare_only"
+      }
+    },
+    {
+      "id": "agentcore_helpfulness",
+      "display_name": "AgentCore Helpfulness",
+      "implementation": "Builtin.Helpfulness",
+      "type": "agentcore_builtin",
+      "input_level": "trace_span",
+      "purpose": "Compare response helpfulness from AWS-managed built-in scoring.",
+      "threshold": null,
+      "gate_role": "compare_only",
+      "reliability_policy": {
+        "meta_eval_required": false,
+        "minimum_verdict_for_gate": "N/A",
+        "fallback_gate_role": "compare_only"
+      }
+    }
+  ]
+}

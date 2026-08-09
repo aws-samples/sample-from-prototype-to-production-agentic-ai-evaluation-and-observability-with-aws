@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "catalog_version": "product-catalog-tool-catalog-v1",
+  "tools": [
+    {
+      "name": "search_products",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "query, optional category, optional max_results",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Search the product catalog by query and optional category."
+    },
+    {
+      "name": "get_product_details",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "product_id",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Retrieve detailed product information by product ID."
+    },
+    {
+      "name": "check_inventory",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "product_id",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Check stock quantity and availability for a product."
+    },
+    {
+      "name": "get_product_recommendations",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "context and optional max_recommendations",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Recommend products based on customer context."
+    },
+    {
+      "name": "compare_products",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "comma-separated product_ids",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Compare multiple products side by side."
+    },
+    {
+      "name": "get_return_policy",
+      "operation_type": "read",
+      "risk_level": "low",
+      "mutates_catalog": false,
+      "requires_confirmation": false,
+      "input_summary": "optional product_id",
+      "allowed_roles": [
+        "customer",
+        "admin"
+      ],
+      "description": "Retrieve product-specific or store-wide return policy information."
+    },
+    {
+      "name": "create_product",
+      "operation_type": "write",
+      "risk_level": "high",
+      "mutates_catalog": true,
+      "requires_confirmation": true,
+      "input_summary": "product_id, name, category, price, description, specifications, stock_quantity",
+      "allowed_roles": [
+        "admin"
+      ],
+      "description": "Create a new product in the catalog."
+    },
+    {
+      "name": "update_product",
+      "operation_type": "write",
+      "risk_level": "high",
+      "mutates_catalog": true,
+      "requires_confirmation": true,
+      "input_summary": "product_id and JSON updates",
+      "allowed_roles": [
+        "admin"
+      ],
+      "description": "Modify product attributes such as name, description, specs, or category."
+    },
+    {
+      "name": "delete_product",
+      "operation_type": "write",
+      "risk_level": "high",
+      "mutates_catalog": true,
+      "requires_confirmation": true,
+      "input_summary": "product_id",
+      "allowed_roles": [
+        "admin"
+      ],
+      "description": "Soft delete a product by marking it discontinued."
+    },
+    {
+      "name": "update_inventory",
+      "operation_type": "write",
+      "risk_level": "medium",
+      "mutates_catalog": true,
+      "requires_confirmation": true,
+      "input_summary": "product_id, new_quantity, optional restock_date",
+      "allowed_roles": [
+        "admin"
+      ],
+      "description": "Adjust stock quantities and optional restock dates."
+    },
+    {
+      "name": "update_pricing",
+      "operation_type": "write",
+      "risk_level": "high",
+      "mutates_catalog": true,
+      "requires_confirmation": true,
+      "input_summary": "product_id, new_price, optional sale_price, optional sale_end_date",
+      "allowed_roles": [
+        "admin"
+      ],
+      "description": "Change regular pricing and optional sale pricing."
+    }
+  ]
+}

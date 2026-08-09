@@ -16,15 +16,18 @@ import base64
 import json
 import logging
 import os
+from urllib.parse import urlparse
 
 import boto3
-from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.runtime import BedrockAgentCoreApp, BedrockAgentCoreContext
+from opentelemetry import trace
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+tracer = trace.get_tracer(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration from environment variables
@@ -32,6 +35,28 @@ logging.basicConfig(level=logging.INFO)
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "")
 AGENT_REGION = os.environ.get("AGENT_REGION", os.environ.get("AWS_REGION", "us-west-2"))
 MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-sonnet-4-6")
+DEPLOYMENT_ID = os.environ.get("DEPLOYMENT_ID", "unknown")
+AGENT_VERSION = os.environ.get("AGENT_VERSION", "section03-local")
+PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "unknown")
+TOOL_POLICY_VERSION = os.environ.get("TOOL_POLICY_VERSION", "unknown")
+OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "product-catalog-agent")
+
+SAFE_TRACE_ATTRIBUTE_KEYS = {
+    "deployment.id",
+    "agent.version",
+    "agent.model_id",
+    "agent.prompt_version",
+    "agent.tool_policy_version",
+    "runtime.role",
+    "runtime.session_id",
+    "runtime.region",
+    "gateway.url_host",
+    "tools.available_count",
+    "tools.allowed_count",
+    "tools.used_count",
+    "operation.status",
+    "error.type",
+}
 
 # ---------------------------------------------------------------------------
 # RBAC constants (same as Module 01)
@@ -111,6 +136,47 @@ Use administrative tools carefully. Always confirm important changes.
 For deletions, note that they are soft deletes (products are marked as discontinued)."""
 
 
+def safe_error(exc: Exception) -> str:
+    """Return a token-safe error string for logs and responses."""
+    return f"{type(exc).__name__}: see runtime logs for sanitized context"
+
+
+def gateway_host() -> str:
+    """Return the Gateway host without path, query string, or credentials."""
+    try:
+        return urlparse(GATEWAY_URL).netloc
+    except Exception:
+        return "unknown"
+
+
+def base_trace_attributes(role: str = None, session_id: str = None) -> dict:
+    """Safe release/runtime attributes for custom spans."""
+    attrs = {
+        "deployment.id": DEPLOYMENT_ID,
+        "agent.version": AGENT_VERSION,
+        "agent.model_id": MODEL_ID,
+        "agent.prompt_version": PROMPT_VERSION,
+        "agent.tool_policy_version": TOOL_POLICY_VERSION,
+        "runtime.region": AGENT_REGION,
+        "gateway.url_host": gateway_host() if GATEWAY_URL else None,
+    }
+    if role:
+        attrs["runtime.role"] = role
+    if session_id:
+        attrs["runtime.session_id"] = session_id
+    return attrs
+
+
+def set_safe_span_attributes(span, attrs: dict) -> None:
+    """Attach only allowlisted non-empty span attributes."""
+    if not span:
+        return
+    for key, value in attrs.items():
+        if key not in SAFE_TRACE_ATTRIBUTE_KEYS or value is None:
+            continue
+        span.set_attribute(key, value)
+
+
 def decode_jwt_claims(token: str) -> dict:
     """Decode JWT payload to extract claims."""
     try:
@@ -123,7 +189,7 @@ def decode_jwt_claims(token: str) -> dict:
             payload_b64 += "=" * padding
         return json.loads(base64.urlsafe_b64decode(payload_b64))
     except Exception as e:
-        logger.error(f"Error decoding JWT: {e}")
+        logger.warning("JWT claim decoding failed: %s", type(e).__name__)
         return {}
 
 
@@ -148,6 +214,53 @@ def strip_prefix(tool_name: str) -> str:
     if delimiter in tool_name:
         return tool_name[tool_name.index(delimiter) + len(delimiter) :]
     return tool_name
+
+
+def get_config_bundle() -> dict:
+    """Read the AgentCore configuration bundle injected by Gateway A/B routing."""
+    try:
+        bundle = BedrockAgentCoreContext.get_config_bundle()
+        return bundle if isinstance(bundle, dict) else {}
+    except Exception as exc:
+        logger.warning("Configuration bundle unavailable: %s", type(exc).__name__)
+        return {}
+
+
+def resolve_system_prompt(role: str, bundle: dict = None) -> str:
+    """Choose the role-aware prompt, with bundle overrides when present."""
+    default_prompt = ADMIN_SYSTEM_PROMPT if role == "admin" else CUSTOMER_SYSTEM_PROMPT
+    bundle = bundle or {}
+
+    if isinstance(bundle.get("system_prompt"), str):
+        return bundle["system_prompt"]
+
+    prompts = bundle.get("system_prompts")
+    if isinstance(prompts, dict):
+        return (
+            prompts.get(role)
+            or prompts.get("recommended_combined")
+            or default_prompt
+        )
+    return default_prompt
+
+
+def apply_tool_description_overrides(tools: list, bundle: dict = None) -> None:
+    """Apply bundle tool-description overrides to Strands MCP tool specs."""
+    bundle = bundle or {}
+    descriptions = bundle.get("tool_descriptions")
+    if not isinstance(descriptions, dict) or not descriptions:
+        return
+
+    for tool in tools:
+        tool_name = getattr(tool, "tool_name", "")
+        plain_name = strip_prefix(tool_name)
+        description = descriptions.get(plain_name) or descriptions.get(tool_name)
+        if not description or not hasattr(tool, "tool_spec"):
+            continue
+        try:
+            tool.tool_spec["description"] = str(description)
+        except Exception:
+            logger.warning("Could not update tool description for %s", plain_name)
 
 
 # ---------------------------------------------------------------------------
@@ -216,95 +329,168 @@ def invoke(payload=None, **kwargs):
     The bearer_token is passed by the frontend after Cognito login.
     It contains cognito:groups claim used for RBAC.
     """
-    if not payload:
-        return {"error": "No payload provided"}
+    with tracer.start_as_current_span("product_catalog.runtime_invocation") as root_span:
+        if not payload:
+            set_safe_span_attributes(
+                root_span,
+                {**base_trace_attributes(), "operation.status": "missing_payload"},
+            )
+            return {"error": "No payload provided"}
 
-    # Handle warmup
-    if payload.get("warmup"):
-        return {"status": "warmed"}
+        # Handle warmup
+        if payload.get("warmup"):
+            set_safe_span_attributes(
+                root_span,
+                {**base_trace_attributes(), "operation.status": "warmup"},
+            )
+            return {"status": "warmed"}
 
-    prompt = payload.get("prompt", "")
-    bearer_token = payload.get("bearer_token", "")  # ID token for role extraction
-    access_token = payload.get("access_token", "")  # Access token for Gateway auth
-    session_id = payload.get("session_id", "default")
+        prompt = payload.get("prompt", "")
+        bearer_token = payload.get("bearer_token", "")  # ID token for role extraction
+        access_token = payload.get("access_token", "")  # Access token for Gateway auth
+        session_id = payload.get("session_id", "default")
 
-    if not prompt:
-        return {"error": "No prompt provided"}
+        if not prompt:
+            set_safe_span_attributes(
+                root_span,
+                {
+                    **base_trace_attributes(session_id=session_id),
+                    "operation.status": "missing_prompt",
+                },
+            )
+            return {"error": "No prompt provided"}
 
-    # Determine role from JWT
-    role = "customer"  # Default to least privilege
-    if bearer_token:
-        role = get_role_from_jwt(bearer_token)
-    logger.info(f"User role: {role} | Session: {session_id}")
+        # Determine role from JWT
+        role = "customer"  # Default to least privilege
+        with tracer.start_as_current_span("product_catalog.jwt_role_extraction") as span:
+            if bearer_token:
+                role = get_role_from_jwt(bearer_token)
+            set_safe_span_attributes(
+                span,
+                {**base_trace_attributes(role, session_id), "operation.status": "ok"},
+            )
+        logger.info("Runtime invocation role=%s session_id=%s", role, session_id)
+        set_safe_span_attributes(root_span, base_trace_attributes(role, session_id))
 
-    # Connect to Gateway MCP tools
-    if not GATEWAY_URL:
-        return {"error": "GATEWAY_URL not configured"}
+        # Connect to Gateway MCP tools
+        if not GATEWAY_URL:
+            set_safe_span_attributes(root_span, {"operation.status": "gateway_missing"})
+            return {"error": "GATEWAY_URL not configured"}
 
-    # Use access_token for Gateway auth (has client_id claim for CUSTOM_JWT validation)
-    # Fall back to bearer_token (ID token) if no access_token provided
-    gateway_token = access_token or bearer_token
-    mcp_client = create_sigv4_mcp_client(GATEWAY_URL, AGENT_REGION, gateway_token)
+        # Use access_token for Gateway auth (has client_id claim for CUSTOM_JWT validation)
+        # Fall back to bearer_token (ID token) if no access_token provided
+        gateway_token = access_token or bearer_token
+        config_bundle = get_config_bundle()
+        mcp_client = create_sigv4_mcp_client(GATEWAY_URL, AGENT_REGION, gateway_token)
 
-    try:
-        mcp_client.__enter__()
-        all_tools = mcp_client.list_tools_sync()
-
-        # Filter tools by role (application-level RBAC - defense in depth)
-        role_tools = get_tools_for_role(all_tools, role)
-        logger.info(
-            f"Tools available for {role}: {len(role_tools)} / {len(all_tools)} total"
-        )
-
-        # Select system prompt based on role
-        system_prompt = (
-            ADMIN_SYSTEM_PROMPT if role == "admin" else CUSTOMER_SYSTEM_PROMPT
-        )
-
-        # Create agent
-        model = BedrockModel(
-            model_id=MODEL_ID,
-            region_name=AGENT_REGION,
-            temperature=0.3,
-            max_tokens=1500,
-        )
-
-        agent = Agent(model=model, tools=role_tools, system_prompt=system_prompt)
-
-        # Invoke agent
-        response = agent(prompt)
-        response_text = response.message["content"][0]["text"]
-
-        # Collect tool usage metadata from full conversation history
-        # Strands uses 'toolUse' key (camelCase) in ContentBlock TypedDict
-        tools_used = []
-        for msg in agent.messages:
-            if msg.get("role") == "assistant":
-                for content_block in msg.get("content", []):
-                    if "toolUse" in content_block:
-                        tool_name = content_block["toolUse"].get("name", "")
-                        tools_used.append(strip_prefix(tool_name))
-
-        return {
-            "status": "success",
-            "response": response_text,
-            "metadata": {
-                "role": role,
-                "tools_available": len(role_tools),
-                "tools_used": tools_used,
-                "session_id": session_id,
-                "model": MODEL_ID,
-            },
-        }
-
-    except Exception as e:
-        logger.error(f"Agent error: {e}")
-        return {"status": "error", "error": str(e)}
-    finally:
         try:
-            mcp_client.__exit__(None, None, None)
-        except Exception:
-            pass
+            with tracer.start_as_current_span("product_catalog.gateway_mcp_connection") as span:
+                set_safe_span_attributes(
+                    span,
+                    {**base_trace_attributes(role, session_id), "operation.status": "connecting"},
+                )
+                mcp_client.__enter__()
+                set_safe_span_attributes(span, {"operation.status": "connected"})
+
+            with tracer.start_as_current_span("product_catalog.tool_discovery") as span:
+                all_tools = mcp_client.list_tools_sync()
+                set_safe_span_attributes(
+                    span,
+                    {
+                        **base_trace_attributes(role, session_id),
+                        "tools.available_count": len(all_tools),
+                        "operation.status": "ok",
+                    },
+                )
+
+            # Filter tools by role (application-level RBAC - defense in depth)
+            with tracer.start_as_current_span("product_catalog.rbac_tool_filtering") as span:
+                role_tools = get_tools_for_role(all_tools, role)
+                set_safe_span_attributes(
+                    span,
+                    {
+                        **base_trace_attributes(role, session_id),
+                        "tools.available_count": len(all_tools),
+                        "tools.allowed_count": len(role_tools),
+                        "operation.status": "ok",
+                    },
+                )
+            logger.info(
+                "Tools available for role=%s: %s/%s",
+                role,
+                len(role_tools),
+                len(all_tools),
+            )
+
+            # Apply AgentCore configuration-bundle overrides when Gateway A/B
+            # routing injects a bundle reference through request baggage.
+            system_prompt = resolve_system_prompt(role, config_bundle)
+            apply_tool_description_overrides(role_tools, config_bundle)
+
+            # Create agent
+            model = BedrockModel(
+                model_id=MODEL_ID,
+                region_name=AGENT_REGION,
+                temperature=0.3,
+                max_tokens=1500,
+            )
+
+            agent = Agent(model=model, tools=role_tools, system_prompt=system_prompt)
+
+            # Invoke agent
+            with tracer.start_as_current_span("product_catalog.agent_invocation") as span:
+                set_safe_span_attributes(
+                    span,
+                    {**base_trace_attributes(role, session_id), "operation.status": "running"},
+                )
+                response = agent(prompt)
+                response_text = response.message["content"][0]["text"]
+
+            # Collect tool usage metadata from full conversation history
+            # Strands uses 'toolUse' key (camelCase) in ContentBlock TypedDict
+            tools_used = []
+            for msg in agent.messages:
+                if msg.get("role") == "assistant":
+                    for content_block in msg.get("content", []):
+                        if "toolUse" in content_block:
+                            tool_name = content_block["toolUse"].get("name", "")
+                            tools_used.append(strip_prefix(tool_name))
+
+            set_safe_span_attributes(
+                root_span,
+                {
+                    "tools.allowed_count": len(role_tools),
+                    "tools.used_count": len(tools_used),
+                    "operation.status": "success",
+                },
+            )
+
+            return {
+                "status": "success",
+                "response": response_text,
+                "metadata": {
+                    "role": role,
+                    "tools_available": len(role_tools),
+                    "tools_used": tools_used,
+                    "session_id": session_id,
+                    "model": MODEL_ID,
+                    "deployment_id": DEPLOYMENT_ID,
+                    "agent_version": AGENT_VERSION,
+                },
+            }
+
+        except Exception as e:
+            logger.error("Agent error type=%s", type(e).__name__)
+            set_safe_span_attributes(
+                root_span,
+                {"operation.status": "error", "error.type": type(e).__name__},
+            )
+            return {"status": "error", "error": safe_error(e)}
+        finally:
+            try:
+                mcp_client.__exit__(None, None, None)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

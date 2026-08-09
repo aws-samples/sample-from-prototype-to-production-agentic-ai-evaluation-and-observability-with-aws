@@ -27,11 +27,8 @@ REPORT_PATH = OUTPUT_DIR / "e2e-report.md"
 NOTEBOOKS = [
     ("00-prerequisites/0-environment-setup.ipynb", "00-prerequisites", "Module 00: Prerequisites"),
     ("01-single-agent-prototype/01-single-agent-prototype.ipynb", "01-single-agent-prototype", "Module 01: Single Agent"),
-    ("02-evaluation-baseline/02b-strands-evaluation.ipynb", "02-evaluation-baseline", "Module 02b: Strands Evaluation"),
-    # Module 03 deploys infra - skip for now as runtime already exists
-    # ("03-production-deployment/03-production-deployment.ipynb", "03-production-deployment", "Module 03: Production Deployment"),
-    # Module 05 needs Module 03+04 artifacts
-    # ("05-production-batch-evaluation/05-production-batch-evaluation.ipynb", "05-production-batch-evaluation", "Module 05: Batch Evaluation"),
+    ("02-evaluation-baseline/02a-strands-evaluation.ipynb", "02-evaluation-baseline", "Module 02a: Evaluation Baseline"),
+    # Optional Module 02b and live AWS Modules 03-05 are validated separately.
 ]
 
 KERNEL = "workshop"
@@ -149,7 +146,11 @@ def main():
     report.append(f"# Workshop Notebook E2E Report")
     report.append(f"")
     report.append(f"**Date:** {start_time.strftime('%Y-%m-%d %H:%M UTC')}")
-    report.append(f"**Branch:** feature/agentcore-ondemand-eval")
+    branch = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), check=False,
+    ).stdout.strip() or "unknown"
+    report.append(f"**Branch:** {branch}")
     report.append(f"**Duration:** {(end_time - start_time).total_seconds():.0f}s")
     report.append(f"**Result:** {total_passed}/{total_run} passed")
     report.append(f"")

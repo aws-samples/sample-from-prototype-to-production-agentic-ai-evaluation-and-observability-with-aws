@@ -8,6 +8,7 @@ Supports user login (customer/admin) and demonstrates RBAC in production.
 import streamlit as st
 import json
 import os
+import re
 import uuid
 from datetime import datetime
 import boto3
@@ -26,6 +27,45 @@ def load_config():
     return None
 
 
+def sanitize_error(exc):
+    """Return token-safe error text for the local demo UI."""
+    text = str(exc)
+    text = re.sub(r"Bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer <redacted>", text, flags=re.I)
+    text = re.sub(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b", "<jwt>", text)
+    text = re.sub(r"(?i)(password|token|secret|authorization)=?[^\\s,;]+", r"\1=<redacted>", text)
+    return f"{type(exc).__name__}: {text[:180]}"
+
+
+def demo_credentials(config):
+    """Derive synthetic workshop users without storing credentials in config."""
+    suffix = config.get('demo_user_suffix')
+    if not suffix:
+        deployment_id = str(config.get('deployment_id', ''))
+        suffix = deployment_id.split('-')[-1] if '-' in deployment_id else None
+    if not suffix:
+        return None
+
+    password = os.environ.get('SECTION03_TEST_PASSWORD', f"{suffix}Aa1!z9")
+    return {
+        "Customer": {
+            "email": os.environ.get(
+                'SECTION03_CUSTOMER_EMAIL',
+                f"customer+{suffix}@example.invalid",
+            ),
+            "password": password,
+            "role": "customer",
+        },
+        "Admin": {
+            "email": os.environ.get(
+                'SECTION03_ADMIN_EMAIL',
+                f"admin+{suffix}@example.invalid",
+            ),
+            "password": password,
+            "role": "admin",
+        },
+    }
+
+
 def get_user_token(cognito_client, user_pool_id, client_id, email, password):
     """Authenticate user and get JWT tokens."""
     try:
@@ -41,7 +81,7 @@ def get_user_token(cognito_client, user_pool_id, client_id, email, password):
             'access_token': tokens.get('AccessToken', ''),
         }
     except Exception as e:
-        st.error(f"Login failed: {e}")
+        st.error(f"Login failed: {sanitize_error(e)}")
         return None
 
 
@@ -90,7 +130,7 @@ def invoke_agent(config, prompt, bearer_token, access_token, session_id):
         full_response = '\n'.join(content)
         return json.loads(full_response)
     except Exception as e:
-        return {'status': 'error', 'error': str(e)}
+        return {'status': 'error', 'error': sanitize_error(e)}
 
 
 # ============================================================================
@@ -148,19 +188,11 @@ with st.sidebar:
     if not st.session_state.logged_in:
         st.write("Login to test different roles (RBAC)")
 
-        # Pre-configured test users
-        user_options = {
-            "Customer (John Smith)": {
-                "email": config.get('customer_email', 'john.customer@example.com'),
-                "password": config.get('test_password', 'Workshop1234'),
-                "role": "customer"
-            },
-            "Admin (Alice Admin)": {
-                "email": config.get('admin_email', 'alice.admin@example.com'),
-                "password": config.get('test_password', 'Workshop1234'),
-                "role": "admin"
-            }
-        }
+        # Synthetic workshop users created by the deployment notebook.
+        user_options = demo_credentials(config)
+        if not user_options:
+            st.error("Demo user metadata is missing. Re-run the deployment notebook.")
+            st.stop()
 
         selected_user = st.selectbox("Select test user:", list(user_options.keys()))
 

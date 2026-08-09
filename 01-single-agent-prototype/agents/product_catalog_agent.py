@@ -24,6 +24,7 @@ from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
+from config_loader import AgentBehaviorConfig, load_agent_behavior_config
 
 logging.getLogger("strands").setLevel(logging.INFO)
 logging.basicConfig(
@@ -35,8 +36,14 @@ logging.basicConfig(
 # Get the current Python executable to ensure MCP server uses same environment
 PYTHON_EXECUTABLE = sys.executable
 
-# Model configuration
-SONNET_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
+# Versioned local behavior contract
+BEHAVIOR_CONFIG = load_agent_behavior_config()
+
+# Model and policy constants kept for compatibility with later notebooks.
+SONNET_MODEL_ID = BEHAVIOR_CONFIG.model_config["model_id"]
+CUSTOMER_TOOLS = BEHAVIOR_CONFIG.tools_for_role("customer")
+ADMIN_TOOLS = BEHAVIOR_CONFIG.tools_for_role("admin")
+ADMIN_ONLY_TOOLS = [tool for tool in ADMIN_TOOLS if tool not in CUSTOMER_TOOLS]
 
 
 # =============================================================================
@@ -48,12 +55,9 @@ class UserSession:
     """
     Represents an authenticated user session with role information.
 
-    In production (Module 03), this maps to JWT claims from AgentCore Identity:
-    - user_id -> JWT 'sub' claim
-    - role -> JWT custom claim or Cognito group
-    - email -> JWT 'email' claim
-
     For the prototype (Module 01), we simulate this locally.
+    Later sections can replace this local role source while keeping the same
+    role-to-tool behavior contract.
     """
     user_id: str
     role: str       # "customer" or "admin"
@@ -67,28 +71,24 @@ class UserSession:
         return self.role == "customer"
 
 
-# Tool names organized by access level
-CUSTOMER_TOOLS = [
-    "search_products",
-    "get_product_details",
-    "check_inventory",
-    "get_product_recommendations",
-    "compare_products",
-    "get_return_policy",
-]
-
-ADMIN_ONLY_TOOLS = [
-    "create_product",
-    "update_product",
-    "delete_product",
-    "update_inventory",
-    "update_pricing",
-]
-
-ADMIN_TOOLS = CUSTOMER_TOOLS + ADMIN_ONLY_TOOLS
+def strip_tool_prefix(tool_name: str) -> str:
+    """Return a plain MCP tool name, tolerating future prefixed tool names."""
+    delimiter = "___"
+    if delimiter in tool_name:
+        return tool_name[tool_name.index(delimiter) + len(delimiter) :]
+    return tool_name
 
 
-def get_tools_for_role(all_mcp_tools: list, role: str) -> list:
+def get_mcp_tool_name(tool) -> str:
+    """Return the tool name from an MCP tool-like object."""
+    return strip_tool_prefix(getattr(tool, "tool_name", getattr(tool, "name", "")))
+
+
+def get_tools_for_role(
+    all_mcp_tools: list,
+    role: str,
+    behavior_config: AgentBehaviorConfig | None = None,
+) -> list:
     """
     Filter MCP tools based on user role.
 
@@ -103,101 +103,29 @@ def get_tools_for_role(all_mcp_tools: list, role: str) -> list:
     Returns:
         Filtered list of tools appropriate for the role
     """
-    allowed_names = ADMIN_TOOLS if role == "admin" else CUSTOMER_TOOLS
-    return [t for t in all_mcp_tools if t.tool_name in allowed_names]
+    config = behavior_config or BEHAVIOR_CONFIG
+    allowed_names = set(config.tools_for_role(role))
+    return [t for t in all_mcp_tools if get_mcp_tool_name(t) in allowed_names]
 
 
 # =============================================================================
 # System Prompts by Role
 # =============================================================================
 
-CUSTOMER_SYSTEM_PROMPT = """You are a Product Catalog Assistant for an e-commerce store. You help customers find and learn about products.
-
-## Your Capabilities
-- Search for products by keywords, features, or categories
-- Provide detailed product information and specifications
-- Check product availability and inventory
-- Give personalized product recommendations
-- Compare products to help customers choose
-- Explain return policies and warranties
-
-## Product Categories We Carry
-- Audio (headphones, earbuds, speakers)
-- Wearables (smartwatches, fitness trackers)
-- Monitors & Displays
-- Gaming (keyboards, mice, accessories)
-- Accessories (hubs, cables, stands)
-- Cameras (webcams, action cameras)
-- Furniture (office chairs, desks)
-
-## Guidelines
-0. For requests to create, update, delete, or modify products or inventory, just say "Sorry that I couldn't do so!".
-1. Always use the search or retrieval tools to get accurate, up-to-date information
-2. Don't make up product details - if you can't find information, say so
-3. When recommending products, consider the customer's use case and budget
-4. For inventory questions, provide current stock status and alternatives if unavailable
-5. For comparisons, highlight key differences and give objective pros/cons
-
-## Current User
-- Role: Customer
-- User: {user_name} ({user_email})
-
-## Response Format
-- Start with the most relevant information
-- Use bullet points for specifications
-- Include prices when discussing products
-- Mention warranty and return policy for purchase decisions
-"""
-
-ADMIN_SYSTEM_PROMPT = """You are a Product Catalog Administrator for an e-commerce store. You have full access to manage the product catalog.
-
-## Your Capabilities
-
-### Read Operations (same as customer)
-- Search for products by keywords, features, or categories
-- Provide detailed product information and specifications
-- Check product availability and inventory
-- Give product recommendations
-- Compare products
-- View return policies and warranties
-
-### Admin Operations
-- **Create products**: Add new products to the catalog with full details
-- **Update products**: Modify product information (name, description, price, specs, etc.)
-- **Delete products**: Remove products from the catalog (soft delete - marks as discontinued)
-- **Update inventory**: Adjust stock quantities and set restock dates
-- **Update pricing**: Change prices and set sale prices with end dates
-
-## Product Categories
-- Audio, Wearables, Monitors, Gaming, Accessories, Cameras, Furniture
-
-## Guidelines
-1. Always verify product exists before updating or deleting
-2. Use appropriate product ID format: PROD-XXX (e.g., PROD-200)
-3. When creating products, ensure all required fields are provided
-4. For price changes, confirm the change with the user before executing
-5. For deletions, this is a soft delete (marks as discontinued) - explain this to the user
-6. Provide specifications as valid JSON when creating/updating products
-7. Keep audit trail awareness - all changes are timestamped
-
-## Current User
-- Role: Admin
-- User: {user_name} ({user_email})
-
-## Response Format
-- Confirm actions taken with specific details
-- Show before/after values for updates
-- Include product IDs in all responses
-- Warn about irreversible or high-impact changes
-"""
+CUSTOMER_SYSTEM_PROMPT = BEHAVIOR_CONFIG.prompts["customer"]
+ADMIN_SYSTEM_PROMPT = BEHAVIOR_CONFIG.prompts["admin"]
 
 
-def build_system_prompt(user_session: UserSession) -> str:
+def build_system_prompt(
+    user_session: UserSession,
+    behavior_config: AgentBehaviorConfig | None = None,
+) -> str:
     """Build role-appropriate system prompt with user context."""
-    template = ADMIN_SYSTEM_PROMPT if user_session.is_admin() else CUSTOMER_SYSTEM_PROMPT
-    return template.format(
+    config = behavior_config or BEHAVIOR_CONFIG
+    return config.render_prompt(
+        role=user_session.role,
         user_name=user_session.name or user_session.user_id,
-        user_email=user_session.email
+        user_email=user_session.email,
     )
 
 
@@ -213,7 +141,12 @@ class ProductCatalogAgent:
     based on the authenticated user's role.
     """
 
-    def __init__(self, region: str = 'us-west-2', user_session: Optional[UserSession] = None):
+    def __init__(
+        self,
+        region: str = 'us-west-2',
+        user_session: Optional[UserSession] = None,
+        behavior_config: Optional[AgentBehaviorConfig] = None,
+    ):
         """
         Initialize the Product Catalog Agent.
 
@@ -223,6 +156,7 @@ class ProductCatalogAgent:
                          Defaults to a customer role if not provided.
         """
         self.region = region
+        self.behavior_config = behavior_config or BEHAVIOR_CONFIG
         self.user_session = user_session or UserSession(
             user_id="anonymous",
             role="customer",
@@ -237,7 +171,8 @@ class ProductCatalogAgent:
     def _setup_agent(self):
         """Set up the agent with role-filtered MCP tools."""
         # Path to the MCP server
-        mcp_server_path = Path(__file__).parent.parent / "mcp_servers" / "product_mcp_server.py"
+        mcp_server = self.behavior_config.mcp_server_config
+        mcp_server_path = self.behavior_config.section_dir / mcp_server["path"]
 
         # Create server parameters for stdio connection
         server_params = StdioServerParameters(
@@ -258,22 +193,27 @@ class ProductCatalogAgent:
         self._all_tools = self.mcp_client.list_tools_sync()
 
         # Filter tools based on user role (RBAC enforcement)
-        role_tools = get_tools_for_role(self._all_tools, self.user_session.role)
+        role_tools = get_tools_for_role(
+            self._all_tools,
+            self.user_session.role,
+            self.behavior_config,
+        )
 
         # Build role-aware system prompt
-        system_prompt = build_system_prompt(self.user_session)
+        system_prompt = build_system_prompt(self.user_session, self.behavior_config)
 
         # Initialize Bedrock model
+        model_config = self.behavior_config.model_config
         model = BedrockModel(
-            model_id=SONNET_MODEL_ID,
+            model_id=model_config["model_id"],
             region_name=self.region,
-            temperature=0.3,
-            max_tokens=1500
+            temperature=model_config["temperature"],
+            max_tokens=model_config["max_tokens"],
         )
 
         # Create agent with filtered tools
         self.agent = Agent(
-            name="ProductCatalogAgent",
+            name=self.behavior_config.agent_name,
             model=model,
             system_prompt=system_prompt,
             tools=role_tools,
@@ -295,23 +235,51 @@ class ProductCatalogAgent:
 
     def get_available_tools(self) -> list:
         """Return the list of tool names available to the current user."""
-        allowed_names = ADMIN_TOOLS if self.user_session.is_admin() else CUSTOMER_TOOLS
-        return allowed_names
+        return self.behavior_config.tools_for_role(self.user_session.role)
 
     def get_user_info(self) -> dict:
         """Return current user session info."""
+        available_tools = self.get_available_tools()
         return {
             'user_id': self.user_session.user_id,
             'role': self.user_session.role,
             'email': self.user_session.email,
             'name': self.user_session.name,
-            'tools_available': len(self.get_available_tools()),
-            'tools': self.get_available_tools()
+            'tools_available': len(available_tools),
+            'tools': available_tools,
         }
+
+    def get_agent_manifest(self) -> dict:
+        """
+        Return a JSON-serializable local behavior manifest for this agent run.
+
+        The manifest does not create or modify resources. It records the local
+        configuration contract that later lifecycle sections can consume.
+        """
+        available_tools = self.get_available_tools()
+        resolved_role = self.behavior_config.normalize_role(self.user_session.role)
+        manifest = self.behavior_config.base_manifest()
+        manifest["model"]["region"] = self.region
+        manifest["role"] = {
+            "requested": self.user_session.role,
+            "resolved": resolved_role,
+            "default_role_applied": resolved_role != self.user_session.role,
+        }
+        manifest["user_session"] = {
+            "user_id": self.user_session.user_id,
+            "role": self.user_session.role,
+            "email": self.user_session.email,
+            "name": self.user_session.name,
+        }
+        manifest["available_tools"] = available_tools
+        manifest["tool_metadata"] = self.behavior_config.metadata_for_tools(
+            available_tools
+        )
+        return manifest
 
     def cleanup(self):
         """Clean up MCP client resources."""
-        if self.mcp_client:
+        if getattr(self, "mcp_client", None):
             try:
                 self.mcp_client.__exit__(None, None, None)
             except Exception:

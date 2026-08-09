@@ -28,6 +28,11 @@ def decimal_default(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
+def sanitize_error(exc: Exception) -> str:
+    """Return a safe tool error without exposing request or credential details."""
+    return f"{type(exc).__name__}: tool execution failed"
+
+
 def get_products_table():
     """Get DynamoDB products table resource."""
     region = os.environ.get("AWS_REGION", "us-west-2")
@@ -117,7 +122,7 @@ def search_products(query: str, category: str = None, max_results: int = 5) -> d
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error searching for products: {query}",
         }
 
@@ -155,7 +160,7 @@ def get_product_details(product_id: str) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error getting product details for {product_id}",
         }
 
@@ -200,7 +205,7 @@ def check_inventory(product_id: str) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error checking inventory for {product_id}",
         }
 
@@ -293,7 +298,7 @@ def get_product_recommendations(
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": "Error getting product recommendations",
         }
 
@@ -354,7 +359,7 @@ def compare_products(product_ids: list) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": "Error comparing products",
         }
 
@@ -400,7 +405,7 @@ def get_return_policy(product_id: str = None) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": "Error getting return policy",
         }
 
@@ -477,7 +482,7 @@ def create_product(
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error creating product {product_id}",
         }
 
@@ -558,7 +563,7 @@ def update_product(product_id: str, updates: str) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error updating product {product_id}",
         }
 
@@ -602,7 +607,7 @@ def delete_product(product_id: str) -> dict:
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error deleting product {product_id}",
         }
 
@@ -662,7 +667,7 @@ def update_inventory(
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error updating inventory for {product_id}",
         }
 
@@ -737,7 +742,7 @@ def update_pricing(
     except Exception as e:
         return {
             "success": False,
-            "error": str(e),
+            "error": sanitize_error(e),
             "message": f"Error updating pricing for {product_id}",
         }
 
@@ -814,4 +819,4 @@ def lambda_handler(event, context):
         return {"statusCode": 200, "body": json.dumps(result, default=decimal_default)}
 
     except Exception as e:
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        return {"statusCode": 500, "body": json.dumps({"error": sanitize_error(e)})}
