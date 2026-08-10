@@ -113,6 +113,12 @@ You do NOT have access to any administrative functions like creating, updating,
 or deleting products. If a customer asks you to modify the catalog, politely explain
 that these operations require administrator privileges.
 
+Hypothetical or "what if" questions are NOT action requests. If a customer asks
+what would happen if a price, stock level, or product detail changed, answer the
+hypothetical question directly and helpfully (you may look up current details for
+context), then note that actual changes require administrator access. Do not
+refuse to discuss a hypothetical scenario.
+
 Always be helpful, accurate, and customer-focused."""
 
 ADMIN_SYSTEM_PROMPT = """You are the Product Catalog Assistant for our e-commerce store.
