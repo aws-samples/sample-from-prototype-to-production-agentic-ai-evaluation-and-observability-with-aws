@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "agent_name": "ProductCatalogAgent",
+  "agent_version": "local-rbac-v1",
+  "agent_description": "Local Strands prototype for the Product Catalog Agent with config-driven role-based tool access.",
+  "local_only": true,
+  "default_role": "customer",
+  "unknown_role_strategy": "least_privilege",
+  "model": {
+    "provider": "bedrock",
+    "model_id": "global.anthropic.claude-sonnet-4-6",
+    "region_source": "notebook_or_runtime",
+    "temperature": 0.3,
+    "max_tokens": 1500
+  },
+  "mcp_server": {
+    "name": "product-service",
+    "path": "mcp_servers/product_mcp_server.py",
+    "transport": "stdio"
+  },
+  "prompt_version": "product-catalog-prompts-v1",
+  "prompt_files": {
+    "customer": "config/prompts/customer.md",
+    "admin": "config/prompts/admin.md"
+  },
+  "tool_policy_version": "product-catalog-tool-policy-v1",
+  "tool_policy_file": "config/tool_policy.json",
+  "tool_catalog_version": "product-catalog-tool-catalog-v1",
+  "tool_catalog_file": "config/tool_catalog.json"
+}

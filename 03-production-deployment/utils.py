@@ -15,7 +15,27 @@ import zipfile
 import os
 import time
 import base64
+import re
+import uuid
 from datetime import datetime
+
+
+def redact_email(value: str) -> str:
+    """Mask an email address for console output."""
+    if not value or "@" not in value:
+        return value
+    local, domain = value.split("@", 1)
+    return f"{local[:2]}***@{domain}"
+
+
+def sanitize_error(exc: Exception) -> str:
+    """Return a token-safe error message."""
+    text = str(exc)
+    text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "<email>", text)
+    text = re.sub(r"Bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer <redacted>", text, flags=re.I)
+    text = re.sub(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b", "<jwt>", text)
+    text = re.sub(r"(?i)(password|token|secret|authorization)=?[^\\s,;]+", r"\1=<redacted>", text)
+    return f"{type(exc).__name__}: {text[:180]}"
 
 
 # ===========================================================================
@@ -75,14 +95,14 @@ def create_lambda_execution_role(iam_client, role_name: str, dynamodb_table_arns
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:
         # AccessDenied on CreateRole — role may already exist; try GetRole
-        print(f"Error creating role: {e}")
+        print(f"Error creating role: {sanitize_error(e)}")
         try:
             role = iam_client.get_role(RoleName=role_name)
             print(f"Role {role_name} already exists (retrieved via GetRole)")
             return {'Role': role['Role'], 'exit_code': 0}
         except Exception:
             pass
-        return {'Role': None, 'exit_code': 1, 'error': str(e)}
+        return {'Role': None, 'exit_code': 1, 'error': sanitize_error(e)}
 
 
 def create_lambda_function(
@@ -126,8 +146,8 @@ def create_lambda_function(
         )
         return {'function_arn': response['FunctionArn'], 'function_name': function_name, 'exit_code': 0}
     except Exception as e:
-        print(f"Error creating/updating Lambda: {e}")
-        return {'function_arn': None, 'exit_code': 1, 'error': str(e)}
+        print(f"Error creating/updating Lambda: {sanitize_error(e)}")
+        return {'function_arn': None, 'exit_code': 1, 'error': sanitize_error(e)}
 
 
 # ===========================================================================
@@ -293,9 +313,16 @@ def create_test_user(
             Password=password,
             Permanent=True
         )
-        print(f"Created test user: {email}")
+        print(f"Created test user: {redact_email(email)}")
     except cognito_client.exceptions.UsernameExistsException:
-        print(f"User {email} already exists")
+        print(f"User {redact_email(email)} already exists")
+        cognito_client.admin_set_user_password(
+            UserPoolId=user_pool_id,
+            Username=email,
+            Password=password,
+            Permanent=True
+        )
+        print(f"Reset workshop password for: {redact_email(email)}")
 
     # Add to group
     if group_name:
@@ -305,9 +332,9 @@ def create_test_user(
                 Username=email,
                 GroupName=group_name
             )
-            print(f"Added {email} to group: {group_name}")
+            print(f"Added {redact_email(email)} to group: {group_name}")
         except Exception as e:
-            print(f"Error adding user to group: {e}")
+            print(f"Error adding user to group: {sanitize_error(e)}")
 
 
 def get_user_token(
@@ -326,14 +353,14 @@ def get_user_token(
             }
         )
         tokens = response.get('AuthenticationResult', {})
-        print(f"Got tokens for user: {email}")
+        print(f"Got tokens for user: {redact_email(email)}")
         return {
             'id_token': tokens.get('IdToken', ''),
             'access_token': tokens.get('AccessToken', ''),
             'token_type': tokens.get('TokenType', 'Bearer')
         }
     except Exception as e:
-        print(f"Error getting user token: {e}")
+        print(f"Error getting user token: {sanitize_error(e)}")
         return {}
 
 
@@ -359,7 +386,7 @@ def get_oauth_token(user_pool_id: str, client_id: str, client_secret: str, scope
             )
             return response.json()
     except Exception as e:
-        print(f"Error getting token: {e}")
+        print(f"Error getting token: {sanitize_error(e)}")
     return {}
 
 
@@ -423,14 +450,14 @@ def create_agentcore_gateway_role(iam_client, role_name: str, lambda_arns: list)
         return {'Role': role['Role']}
     except Exception as e:
         # AccessDenied on CreateRole — role may already exist; try GetRole
-        print(f"Error creating gateway role: {e}")
+        print(f"Error creating gateway role: {sanitize_error(e)}")
         try:
             role = iam_client.get_role(RoleName=role_name)
             print(f"Role {role_name} already exists (retrieved via GetRole)")
             return {'Role': role['Role']}
         except Exception:
             pass
-        return {'Role': None, 'error': str(e)}
+        return {'Role': None, 'error': sanitize_error(e)}
 
 
 def create_gateway(
@@ -493,10 +520,10 @@ def create_gateway(
                         'name': name
                     }
         except Exception as e:
-            print(f"Error listing gateways: {e}")
+            print(f"Error listing gateways: {sanitize_error(e)}")
         return None
     except Exception as e:
-        print(f"Error creating gateway: {e}")
+        print(f"Error creating gateway: {sanitize_error(e)}")
         return None
 
 
@@ -529,7 +556,7 @@ def create_lambda_gateway_target(
             _time.sleep(poll_interval)
             waited += poll_interval
         except Exception as e:
-            print(f"  Error checking gateway status: {e}")
+            print(f"  Error checking gateway status: {sanitize_error(e)}")
             _time.sleep(poll_interval)
             waited += poll_interval
 
@@ -590,10 +617,10 @@ def create_lambda_gateway_target(
                 if t.get('name') == target_name:
                     return {'targetId': t['targetId'], 'name': target_name}
         except Exception as e:
-            print(f"Error listing targets: {e}")
+            print(f"Error listing targets: {sanitize_error(e)}")
         return None
     except Exception as e:
-        print(f"Error creating target: {e}")
+        print(f"Error creating target: {sanitize_error(e)}")
         return None
 
 
@@ -609,13 +636,13 @@ def delete_gateway(gateway_client, gateway_id: str) -> bool:
                 )
                 print(f"Deleted target: {target['name']}")
             except Exception as e:
-                print(f"Error deleting target {target['name']}: {e}")
+                print(f"Error deleting target {target['name']}: {sanitize_error(e)}")
 
         gateway_client.delete_gateway(gatewayIdentifier=gateway_id)
         print(f"Deleted gateway: {gateway_id}")
         return True
     except Exception as e:
-        print(f"Error deleting gateway: {e}")
+        print(f"Error deleting gateway: {sanitize_error(e)}")
         return False
 
 
@@ -704,6 +731,25 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
                 })
             )
 
+        # Configuration bundles for AgentCore A/B routing
+        iam_client.put_role_policy(
+            RoleName=role_name,
+            PolicyName=f"{role_name}-configuration-bundle-policy",
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                        "bedrock-agentcore:GetConfigurationBundle",
+                        "bedrock-agentcore:GetConfigurationBundleVersion",
+                        "bedrock-agentcore:ListConfigurationBundleVersions"
+                    ],
+                    "Resource": "*"
+                }]
+            })
+        )
+        print(f"Attached configuration bundle policy")
+
         # Workload identity (for JWT token exchange)
         iam_client.put_role_policy(
             RoleName=role_name,
@@ -765,6 +811,24 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
             )
             print(f"Updated gateway policy on runtime role")
 
+        iam_client.put_role_policy(
+            RoleName=role_name,
+            PolicyName=f"{role_name}-configuration-bundle-policy",
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                        "bedrock-agentcore:GetConfigurationBundle",
+                        "bedrock-agentcore:GetConfigurationBundleVersion",
+                        "bedrock-agentcore:ListConfigurationBundleVersions"
+                    ],
+                    "Resource": "*"
+                }]
+            })
+        )
+        print(f"Ensured configuration bundle policy on runtime role")
+
         # Ensure X-Ray policy is attached
         iam_client.put_role_policy(
             RoleName=role_name,
@@ -789,14 +853,14 @@ def create_agent_runtime_role(iam_client, role_name: str, gateway_arn: str = Non
         return {'Role': role['Role'], 'exit_code': 0}
     except Exception as e:
         # AccessDenied on CreateRole — role may already exist; try GetRole
-        print(f"Error creating role: {e}")
+        print(f"Error creating role: {sanitize_error(e)}")
         try:
             role = iam_client.get_role(RoleName=role_name)
             print(f"Role {role_name} already exists (retrieved via GetRole)")
             return {'Role': role['Role'], 'exit_code': 0}
         except Exception:
             pass
-        return {'Role': None, 'exit_code': 1, 'error': str(e)}
+        return {'Role': None, 'exit_code': 1, 'error': sanitize_error(e)}
 
 
 def create_agent_runtime(
@@ -805,6 +869,22 @@ def create_agent_runtime(
     auth_config: dict = None, description: str = ''
 ) -> dict:
     """Create AgentCore Runtime with optional JWT auth."""
+    def wait_for_runtime_ready(runtime_id: str) -> dict:
+        print("Waiting for runtime to be ready...")
+        while True:
+            status_response = agentcore_client.get_agent_runtime(
+                agentRuntimeId=runtime_id
+            )
+            status = status_response.get('status')
+            if status == 'READY':
+                print("Runtime is ready!")
+                return status_response
+            elif status in ['FAILED', 'DELETED']:
+                print(f"Runtime failed: {status}")
+                return status_response
+            print(f"  Status: {status}...")
+            time.sleep(10)
+
     try:
         create_params = {
             'agentRuntimeName': runtime_name,
@@ -813,7 +893,8 @@ def create_agent_runtime(
                 'containerConfiguration': {'containerUri': container_uri}
             },
             'networkConfiguration': {'networkMode': 'PUBLIC'},
-            'protocolConfiguration': {'serverProtocol': 'HTTP'}
+            'protocolConfiguration': {'serverProtocol': 'HTTP'},
+            'clientToken': str(uuid.uuid4()),
         }
 
         if environment_vars:
@@ -828,30 +909,19 @@ def create_agent_runtime(
         print(f"Created AgentCore Runtime: {runtime_name}")
         print(f"Runtime ARN: {runtime_arn}")
 
-        # Wait for ready
-        print("Waiting for runtime to be ready...")
-        while True:
-            status_response = agentcore_client.get_agent_runtime(
-                agentRuntimeId=response['agentRuntimeId']
-            )
-            status = status_response.get('status')
-            if status == 'READY':
-                print(f"Runtime is ready!")
-                break
-            elif status in ['FAILED', 'DELETED']:
-                print(f"Runtime failed: {status}")
-                return None
-            print(f"  Status: {status}...")
-            time.sleep(10)
+        details = wait_for_runtime_ready(response['agentRuntimeId'])
+        if details.get('status') != 'READY':
+            return None
 
         return {
             'agentRuntimeId': response['agentRuntimeId'],
-            'agentRuntimeArn': runtime_arn,
-            'status': 'READY'
+            'agentRuntimeArn': details.get('agentRuntimeArn', runtime_arn),
+            'agentRuntimeVersion': details.get('agentRuntimeVersion'),
+            'status': details.get('status')
         }
 
     except agentcore_client.exceptions.ConflictException:
-        print(f"Runtime '{runtime_name}' already exists, retrieving...")
+        print(f"Runtime '{runtime_name}' already exists, updating image and environment...")
         try:
             next_token = None
             while True:
@@ -861,20 +931,41 @@ def create_agent_runtime(
                 response = agentcore_client.list_agent_runtimes(**params)
                 for rt in response.get('agentRuntimes', response.get('items', [])):
                     if rt.get('agentRuntimeName') == runtime_name:
-                        details = agentcore_client.get_agent_runtime(agentRuntimeId=rt['agentRuntimeId'])
+                        runtime_id = rt['agentRuntimeId']
+                        update_params = {
+                            'agentRuntimeId': runtime_id,
+                            'roleArn': role_arn,
+                            'agentRuntimeArtifact': {
+                                'containerConfiguration': {'containerUri': container_uri}
+                            },
+                            'networkConfiguration': {'networkMode': 'PUBLIC'},
+                            'protocolConfiguration': {'serverProtocol': 'HTTP'},
+                            'clientToken': str(uuid.uuid4()),
+                        }
+                        if environment_vars:
+                            update_params['environmentVariables'] = environment_vars
+                        if auth_config:
+                            update_params['authorizerConfiguration'] = auth_config
+                        if description:
+                            update_params['description'] = description
+                        agentcore_client.update_agent_runtime(**update_params)
+                        details = wait_for_runtime_ready(runtime_id)
+                        if details.get('status') != 'READY':
+                            return None
                         return {
-                            'agentRuntimeId': rt['agentRuntimeId'],
+                            'agentRuntimeId': runtime_id,
                             'agentRuntimeArn': details.get('agentRuntimeArn'),
+                            'agentRuntimeVersion': details.get('agentRuntimeVersion'),
                             'status': details.get('status')
                         }
                 next_token = response.get('nextToken')
                 if not next_token:
                     break
         except Exception as e:
-            print(f"Error listing runtimes: {e}")
+            print(f"Error listing runtimes: {sanitize_error(e)}")
         return None
     except Exception as e:
-        print(f"Error creating runtime: {e}")
+        print(f"Error creating runtime: {sanitize_error(e)}")
         return None
 
 
@@ -906,10 +997,10 @@ def create_agent_runtime_endpoint(
                         'endpointArn': ep.get('agentRuntimeEndpointArn')
                     }
         except Exception as e:
-            print(f"Error listing endpoints: {e}")
+            print(f"Error listing endpoints: {sanitize_error(e)}")
         return None
     except Exception as e:
-        print(f"Error creating endpoint: {e}")
+        print(f"Error creating endpoint: {sanitize_error(e)}")
         return None
 
 
@@ -974,8 +1065,8 @@ def invoke_agent_runtime(
                 return {'response': full_response, 'status': 'success'}
 
     except Exception as e:
-        print(f"Error invoking runtime: {e}")
-        return {'error': str(e)}
+        print(f"Error invoking runtime: {sanitize_error(e)}")
+        return {'error': sanitize_error(e)}
 
 
 # ===========================================================================
@@ -994,13 +1085,13 @@ def delete_agent_runtime(agentcore_client, runtime_id: str) -> bool:
                 )
                 print(f"Deleted endpoint: {ep.get('name')}")
             except Exception as e:
-                print(f"Error deleting endpoint: {e}")
+                print(f"Error deleting endpoint: {sanitize_error(e)}")
 
         agentcore_client.delete_agent_runtime(agentRuntimeId=runtime_id)
         print(f"Deleted runtime: {runtime_id}")
         return True
     except Exception as e:
-        print(f"Error deleting runtime: {e}")
+        print(f"Error deleting runtime: {sanitize_error(e)}")
         return False
 
 

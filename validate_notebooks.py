@@ -20,7 +20,7 @@ Usage:
     ../.venv/bin/python validate_notebooks.py --fix
 
     # Validate a single notebook:
-    ../.venv/bin/python validate_notebooks.py --file 02-evaluation-baseline/02b-strands-evaluation.ipynb
+    ../.venv/bin/python validate_notebooks.py --file 02-evaluation-baseline/02a-strands-evaluation.ipynb
 """
 
 import json
@@ -46,10 +46,12 @@ WORKSHOP_DIR = Path(__file__).parent
 NOTEBOOK_PATHS = [
     "00-prerequisites/0-environment-setup.ipynb",
     "01-single-agent-prototype/01-single-agent-prototype.ipynb",
-    "02-evaluation-baseline/02a-deepeval-evaluation.ipynb",
-    "02-evaluation-baseline/02b-strands-evaluation.ipynb",
-    "04-online-eval-observability/04-agentcore-evaluations.ipynb",
-    "05-production-batch-evaluation/05-production-batch-evaluation.ipynb",
+    "02-evaluation-baseline/02a-strands-evaluation.ipynb",
+    "02-evaluation-baseline/02b(optional)-deepeval-evaluation.ipynb",
+    "03-production-deployment/03a-ground-truth-dataset.ipynb",
+    "03-production-deployment/03-production-deployment.ipynb",
+    "04-online-eval-observability/04-online-evidence-and-feedback-loop.ipynb",
+    "05-agentcore-optimization/05-agentcore-optimization-experiments.ipynb",
 ]
 
 # Stale references that should NOT appear in notebook source cells

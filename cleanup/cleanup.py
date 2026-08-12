@@ -9,14 +9,30 @@ Resource inventory:
   Module 3: IAM roles (5), ECR repo, Lambda functions (2), Cognito user pool,
             AgentCore gateway + runtime, CloudWatch log groups
   Module 4: Evaluation IAM role, online eval config, CloudWatch dashboard
-  Module 5: S3 buckets (2), Firehose stream, Firehose IAM role
+  Module 5: AgentCore A/B tests, experiment gateways, configuration bundles,
+            S3 buckets (2), Firehose stream, Firehose IAM role
 """
 
 import boto3
+import json
 import sys
 import time
+import uuid
+from pathlib import Path
 
 WORKSHOP_PREFIX = "ecommerce-workshop"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PREREQUISITES_DIR = REPO_ROOT / "00-prerequisites"
+SECTION05_MANIFEST_PATH = REPO_ROOT / "05-agentcore-optimization" / "optimization_manifest.json"
+
+if str(PREREQUISITES_DIR) not in sys.path:
+    sys.path.insert(0, str(PREREQUISITES_DIR))
+
+try:
+    from workshop_state import get_state_file_path, load_state_if_exists
+except Exception:
+    get_state_file_path = None
+    load_state_if_exists = None
 
 
 def get_region():
@@ -27,6 +43,68 @@ def get_region():
 def get_account_id():
     sts = boto3.client("sts")
     return sts.get_caller_identity()["Account"]
+
+
+def load_workshop_state_for_cleanup():
+    """Load the local manifest for planning output only."""
+    if not load_state_if_exists or not get_state_file_path:
+        print("\nState manifest: helper unavailable (cleanup will use built-in names)")
+        return None
+
+    state_path = get_state_file_path()
+    try:
+        state = load_state_if_exists()
+    except Exception as e:
+        print(f"\nState manifest: could not read {state_path} ({e})")
+        print("Cleanup will use built-in names.")
+        return None
+
+    if state is None:
+        print(f"\nState manifest: not found at {state_path}")
+        print("Cleanup will use built-in names.")
+        return None
+
+    workshop = state.get("workshop", {})
+    print(f"\nState manifest: {state_path}")
+    print(f"  Recorded account: {workshop.get('account_id') or 'unknown'}")
+    print(f"  Recorded region: {workshop.get('region') or 'unknown'}")
+    print(f"  Recorded prefix: {workshop.get('prefix') or WORKSHOP_PREFIX}")
+
+    downstream = state.get("downstream_manifests", {})
+    existing_manifests = [
+        name for name, pointer in downstream.items()
+        if isinstance(pointer, dict) and pointer.get("exists")
+    ]
+    if existing_manifests:
+        print(f"  Existing downstream manifests: {', '.join(sorted(existing_manifests))}")
+
+    return state
+
+
+def load_json_manifest(path):
+    """Load an optional local manifest."""
+    try:
+        if path.is_file():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"   Could not read {path}: {e}")
+    return {}
+
+
+def paginated_items(client, operation_name, result_keys, **kwargs):
+    """Yield items from a paginated or single-page boto3 list operation."""
+    operation = getattr(client, operation_name)
+    try:
+        paginator = client.get_paginator(operation_name)
+        for page in paginator.paginate(**kwargs):
+            for result_key in result_keys:
+                for item in page.get(result_key, []):
+                    yield item
+    except Exception:
+        response = operation(**kwargs)
+        for result_key in result_keys:
+            for item in response.get(result_key, []):
+                yield item
 
 
 # ── 1. AgentCore Runtime & Gateway ──────────────────────────────────────────
@@ -69,21 +147,21 @@ def cleanup_agentcore(region):
                 if next_token:
                     params["nextToken"] = next_token
                 resp = control.list_gateways(**params)
-                for gw in resp.get("gateways", []):
+                for gw in resp.get("items", resp.get("gateways", [])):
                     if gw.get("name", "").startswith(gateway_name):
                         gw_id = gw["gatewayId"]
                         # Delete gateway targets first
                         try:
-                            targets = control.list_gateway_targets(gatewayId=gw_id)
-                            for tgt in targets.get("gatewayTargets", []):
+                            targets = control.list_gateway_targets(gatewayIdentifier=gw_id)
+                            for tgt in targets.get("items", targets.get("gatewayTargets", [])):
                                 control.delete_gateway_target(
-                                    gatewayId=gw_id,
+                                    gatewayIdentifier=gw_id,
                                     targetId=tgt["targetId"],
                                 )
                                 print(f"   Deleted gateway target: {tgt['targetId']}")
                         except Exception:
                             pass
-                        control.delete_gateway(gatewayId=gw_id)
+                        control.delete_gateway(gatewayIdentifier=gw_id)
                         print(f"   Deleted gateway: {gw_id}")
                 next_token = resp.get("nextToken")
                 if not next_token:
@@ -93,6 +171,93 @@ def cleanup_agentcore(region):
 
     except Exception as e:
         print(f"   AgentCore cleanup error: {e}")
+
+
+# ── 1a. Section 05 Optimization Experiments ─────────────────────────────────
+
+
+def cleanup_section05_optimization(region):
+    """Delete Section 05 A/B tests, experiment gateways, and config bundles."""
+    print("\n1a. Cleaning up Section 05 optimization resources...")
+
+    manifest = load_json_manifest(SECTION05_MANIFEST_PATH)
+    if not manifest:
+        print("   Section 05 optimization manifest not found (skipping manifest-owned resources)")
+
+    data = boto3.client("bedrock-agentcore", region_name=region)
+    control = boto3.client("bedrock-agentcore-control", region_name=region)
+
+    config_ab = (manifest.get("experiments") or {}).get("config_bundle_ab_test") or {}
+    ab_test_id = (config_ab.get("ab_test") or {}).get("ab_test_id")
+    if ab_test_id:
+        try:
+            data.update_ab_test(
+                abTestId=ab_test_id,
+                executionStatus="STOPPED",
+                clientToken=str(uuid.uuid4()),
+            )
+            print(f"   Stopped A/B test: {ab_test_id}")
+        except Exception as e:
+            print(f"   A/B stop skipped for {ab_test_id}: {e}")
+        try:
+            data.delete_ab_test(abTestId=ab_test_id)
+            print(f"   Deleted A/B test: {ab_test_id}")
+        except Exception as e:
+            print(f"   A/B delete skipped for {ab_test_id}: {e}")
+
+    # Also clean interrupted A/B tests that follow the Section 05 naming pattern.
+    try:
+        for item in paginated_items(data, "list_ab_tests", ["abTests"]):
+            if str(item.get("name", "")).startswith("EcommerceBundleAB"):
+                item_id = item.get("abTestId")
+                try:
+                    data.update_ab_test(
+                        abTestId=item_id,
+                        executionStatus="STOPPED",
+                        clientToken=str(uuid.uuid4()),
+                    )
+                except Exception:
+                    pass
+                data.delete_ab_test(abTestId=item_id)
+                print(f"   Deleted named A/B test: {item_id}")
+    except Exception as e:
+        print(f"   Named A/B scan skipped: {e}")
+
+    gateway_id = (config_ab.get("gateway") or {}).get("gateway_id")
+    gateway_ids = {gateway_id} if gateway_id else set()
+    try:
+        for gateway in paginated_items(control, "list_gateways", ["items", "gateways"]):
+            if str(gateway.get("name", "")).startswith("ecommerce-workshop-ab-"):
+                gateway_ids.add(gateway.get("gatewayId"))
+    except Exception as e:
+        print(f"   Experiment gateway scan skipped: {e}")
+
+    for gw_id in sorted(item for item in gateway_ids if item):
+        try:
+            targets = control.list_gateway_targets(gatewayIdentifier=gw_id)
+            for target in targets.get("items", targets.get("gatewayTargets", [])):
+                control.delete_gateway_target(
+                    gatewayIdentifier=gw_id,
+                    targetId=target["targetId"],
+                )
+                print(f"   Deleted experiment gateway target: {target['targetId']}")
+        except Exception as e:
+            print(f"   Experiment gateway target cleanup skipped for {gw_id}: {e}")
+        try:
+            control.delete_gateway(gatewayIdentifier=gw_id)
+            print(f"   Deleted experiment gateway: {gw_id}")
+        except Exception as e:
+            print(f"   Experiment gateway cleanup skipped for {gw_id}: {e}")
+
+    for bundle in (manifest.get("configuration_bundles") or {}).values():
+        bundle_id = bundle.get("bundle_id") if isinstance(bundle, dict) else None
+        if not bundle_id:
+            continue
+        try:
+            control.delete_configuration_bundle(bundleId=bundle_id)
+            print(f"   Deleted configuration bundle: {bundle_id}")
+        except Exception as e:
+            print(f"   Configuration bundle cleanup skipped for {bundle_id}: {e}")
 
 
 # ── 2. Online Evaluation Config ─────────────────────────────────────────────
@@ -283,6 +448,7 @@ def cleanup_iam_roles(region):
         f"{WORKSHOP_PREFIX}-evaluation-role",
         f"{WORKSHOP_PREFIX}-firehose-role",
         f"{WORKSHOP_PREFIX}-cw-logs-role",
+        f"{WORKSHOP_PREFIX}-ab-gateway-role",
     ]
 
     for role_name in roles:
@@ -379,10 +545,12 @@ def main():
     account_id = get_account_id()
     print(f"\nRegion: {region}")
     print(f"Account: {account_id}")
+    load_workshop_state_for_cleanup()
 
     print("\nThis will delete ALL workshop resources. This cannot be undone.")
     print("\nResources to delete:")
     print("  - AgentCore runtime + gateway")
+    print("  - Section 05 A/B tests, experiment gateways, and config bundles")
     print("  - Online evaluation config")
     print("  - Cognito user pool")
     print("  - Lambda functions (2)")
@@ -402,6 +570,7 @@ def main():
     print("\nStarting cleanup...")
 
     # Delete in dependency order (dependents first, then dependencies)
+    cleanup_section05_optimization(region)  # depends on runtime/gateway/IAM
     cleanup_evaluation_config(region)  # depends on runtime
     cleanup_agentcore(region)  # depends on gateway, IAM roles
     cleanup_firehose(region)  # depends on S3, IAM

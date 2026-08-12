@@ -18,6 +18,7 @@ Admin-only tools: create_product, update_product, delete_product,
 import base64
 import json
 import logging
+import re
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,6 +31,15 @@ ADMIN_ONLY_TOOLS = {
     "update_inventory",
     "update_pricing",
 }
+
+
+def sanitize_error(exc: Exception) -> str:
+    """Return token-safe error text for Gateway responses."""
+    text = str(exc)
+    text = re.sub(r"Bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer <redacted>", text, flags=re.I)
+    text = re.sub(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b", "<jwt>", text)
+    text = re.sub(r"(?i)(password|token|secret|authorization)=?[^\\s,;]+", r"\1=<redacted>", text)
+    return f"{type(exc).__name__}: {text[:120]}"
 
 
 def decode_jwt_payload(token: str) -> dict:
@@ -46,7 +56,7 @@ def decode_jwt_payload(token: str) -> dict:
         payload = base64.urlsafe_b64decode(payload_b64)
         return json.loads(payload)
     except Exception as e:
-        logger.error(f"Error decoding JWT: {e}")
+        logger.warning("Error decoding JWT: %s", type(e).__name__)
         return {}
 
 
@@ -203,11 +213,11 @@ def lambda_handler(event, context):
             }
 
         # Unknown event structure - pass through
-        logger.warning(f"Unknown interceptor event structure: {list(mcp_data.keys())}")
+        logger.warning("Unknown interceptor event structure: %s", list(mcp_data.keys()))
         return {"interceptorOutputVersion": "1.0", "mcp": {}}
 
     except Exception as e:
-        logger.error(f"Interceptor error: {e}")
+        logger.error("Interceptor error type=%s", type(e).__name__)
         # On error, fail open for reads but block writes (safe default)
         return {
             "interceptorOutputVersion": "1.0",
@@ -218,7 +228,7 @@ def lambda_handler(event, context):
                         "jsonrpc": "2.0",
                         "error": {
                             "code": -32603,
-                            "message": f"RBAC interceptor error: {str(e)}",
+                            "message": f"RBAC interceptor error: {sanitize_error(e)}",
                         },
                     },
                 }

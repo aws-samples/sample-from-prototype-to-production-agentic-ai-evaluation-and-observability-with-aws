@@ -22,6 +22,8 @@ import os
 from decimal import Decimal
 from botocore.exceptions import ClientError
 
+from workshop_state import get_state_file_path, record_section00_infrastructure
+
 
 def convert_floats_to_decimal(obj):
     """Recursively convert float values to Decimal for DynamoDB compatibility"""
@@ -47,6 +49,16 @@ class InfrastructureSetup:
         self.orders_table = f'{self.prefix}-orders'
         self.accounts_table = f'{self.prefix}-accounts'
         self.products_table = f'{self.prefix}-products'
+        self.table_names = {
+            'orders': self.orders_table,
+            'accounts': self.accounts_table,
+            'products': self.products_table,
+        }
+        self.ssm_parameters = {
+            'orders_table': (f'{self.prefix}-orders-table', self.orders_table),
+            'accounts_table': (f'{self.prefix}-accounts-table', self.accounts_table),
+            'products_table': (f'{self.prefix}-products-table', self.products_table),
+        }
 
         # Initialize clients
         self.dynamodb = boto3.client('dynamodb', region_name=self.region)
@@ -75,6 +87,9 @@ class InfrastructureSetup:
 
             # 3. SSM Parameters
             self.create_ssm_parameters()
+
+            # 4. Local state/resource manifest
+            self.record_workshop_state()
 
             print("\n" + "="*60)
             print("INFRASTRUCTURE SETUP COMPLETE!")
@@ -253,13 +268,7 @@ class InfrastructureSetup:
         """Create SSM parameters for resource discovery"""
         print("\n5. Creating SSM Parameters...")
 
-        parameters = {
-            f'{self.prefix}-orders-table': self.orders_table,
-            f'{self.prefix}-accounts-table': self.accounts_table,
-            f'{self.prefix}-products-table': self.products_table,
-        }
-
-        for name, value in parameters.items():
+        for name, value in self.ssm_parameters.values():
             try:
                 self.ssm.put_parameter(
                     Name=name,
@@ -271,6 +280,23 @@ class InfrastructureSetup:
                 print(f"  ✅ {name}: {value}")
             except Exception as e:
                 print(f"  ❌ {name}: {e}")
+
+    def record_workshop_state(self):
+        """Record local resource inventory for later modules and cleanup planning"""
+        print("\n6. Recording Workshop State Manifest...")
+
+        try:
+            record_section00_infrastructure(
+                account_id=self.account_id,
+                region=self.region,
+                prefix=self.prefix,
+                dynamodb_tables=self.table_names,
+                ssm_parameters=self.ssm_parameters,
+            )
+            print(f"  ✅ State manifest: {get_state_file_path()}")
+        except Exception as e:
+            print(f"  ⚠️ State manifest was not updated: {e}")
+            print("  Required DynamoDB and SSM setup completed; continuing.")
 
     def cleanup(self):
         """Remove all workshop infrastructure"""

@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "product-catalog-tool-policy-v1",
+  "default_role": "customer",
+  "unknown_role_strategy": "least_privilege",
+  "roles": {
+    "customer": {
+      "description": "Customer users can browse products, inspect details, compare options, check inventory, and read return policies.",
+      "allowed_tools": [
+        "search_products",
+        "get_product_details",
+        "check_inventory",
+        "get_product_recommendations",
+        "compare_products",
+        "get_return_policy"
+      ]
+    },
+    "admin": {
+      "description": "Administrator users can browse products and mutate catalog, inventory, and pricing data.",
+      "allowed_tools": [
+        "search_products",
+        "get_product_details",
+        "check_inventory",
+        "get_product_recommendations",
+        "compare_products",
+        "get_return_policy",
+        "create_product",
+        "update_product",
+        "delete_product",
+        "update_inventory",
+        "update_pricing"
+      ]
+    }
+  }
+}

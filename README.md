@@ -1,7 +1,7 @@
 # From Prototype to Production with AWS
 ## Agentic AI Evaluation and Observability Workshop
 
-Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, and continuously monitor AI agents using AWS Bedrock AgentCore — starting with a single agent with RBAC and progressing to production deployment with observability. Workshop instruciton is [here](https://catalog.us-east-1.prod.workshops.aws/workshops/927fb19e-6733-4986-904c-3e63b28c21e7/en-US). 
+Transform your AI agents from promising prototypes into production-ready systems. This hands-on workshop teaches you to build, evaluate, deploy, observe, and optimize AI agents using AWS Bedrock AgentCore — starting with a single agent with RBAC and progressing to production deployment, managed evaluation, online evidence, and optimization experiments. Workshop instruction is [here](https://catalog.us-east-1.prod.workshops.aws/workshops/927fb19e-6733-4986-904c-3e63b28c21e7/en-US).
 
 ---
 
@@ -12,7 +12,7 @@ Transform your AI agents from promising prototypes into production-ready systems
 **The Solution**: This workshop provides a complete framework for:
 - **Systematic Evaluation** - Test agents before deployment with custom evaluators
 - **Production Observability** - Monitor agent behavior with OTEL tracing
-- **Continuous Improvement** - Detect drift and iterate based on real data
+- **Continuous Improvement** - Use managed datasets, feedback loops, recommendations, and A/B tests to improve safely
 
 ---
 
@@ -30,8 +30,9 @@ Transform your AI agents from promising prototypes into production-ready systems
 A production-ready AI agent system for e-commerce, progressing from simple to complex:
 - **Single agent with RBAC** - Product catalog agent with customer/admin role-based access control
 - **Comprehensive evaluation** - Custom evaluators for quality, tool accuracy, and access control compliance
-- **Full observability** - OTEL tracing, CloudWatch metrics, and batch evaluation
+- **Full observability** - OTEL tracing, CloudWatch metrics, AgentCore evaluations, and batch release gates
 - **Production deployment** - AWS Bedrock AgentCore with gateway, runtime, and Identity (JWT auth)
+- **Optimization loop** - AgentCore recommendations, config bundles, A/B testing, and release decisions
 
 ---
 
@@ -79,7 +80,8 @@ By the end of this workshop, you will:
 2. **Evaluate** the agent systematically with custom evaluators (tool accuracy, compliance, quality)
 3. **Deploy** to production with AgentCore Runtime, Gateway, and Identity
 4. **Observe** agent behavior through OTEL traces and CloudWatch metrics
-5. **Analyze** production traffic with batch evaluation pipelines
+5. **Update** evaluation datasets from reviewed production evidence
+6. **Optimize** the agent with AgentCore recommendations, config-bundle experiments, A/B metrics, and release decisions
 
 ---
 
@@ -90,14 +92,14 @@ The workshop teaches a layered evaluation approach — the **Evaluation Pyramid*
 | Layer | Name | Description | Modules |
 |-------|------|-------------|---------|
 | **Layer 1** | Deterministic Assertions | Hard checks: expected tool called, RBAC enforced, required fields present. Fast, cheap, no LLM needed. | 02a (Step 3b) |
-| **Layer 2** | LLM-as-Judge | An LLM scores agent responses on rubrics (helpfulness, goal success, policy compliance). Flexible but requires calibration. Covers both custom rubrics (02a, 05) and AWS-managed built-in evaluators (02a Step 10, 04). | 02a, 02b, 04, 05 |
+| **Layer 2** | LLM-as-Judge | An LLM scores agent responses on rubrics (helpfulness, goal success, policy compliance). Flexible but requires calibration. Covers local custom rubrics and AWS-managed built-in evaluators used for on-demand, batch, online, and A/B evaluation. | 02a, 02b, 03, 04, 05 |
 | **Layer 3** | Meta-Evaluation & Human Review | Evaluate the evaluators: compare LLM judge scores against expert-labeled ground truth. Detects evaluator drift. | 02a (Meta-Evaluation section) |
 
 **Principle:** Start at Layer 1 — deterministic checks catch the most critical failures at near-zero cost. Only escalate to Layer 2/3 for nuanced quality judgments that rules can't capture.
 
 **Two classes of Layer 2 evaluators used in this workshop:**
-- **Custom LLM-as-Judge** (`02-evaluation-baseline/custom_evaluators.py`) — 7 domain-specific evaluators defined and run locally (Module 02a), then reused for batch evaluation in Module 05.
-- **AgentCore built-in evaluators** — AWS-managed LLM-as-Judge running in the cloud. Module 04 configures these on live traffic (Helpfulness, GoalSuccessRate, ToolSelectionAccuracy, Coherence). Module 02a Step 10 demonstrates calling them on-demand via the Evaluate API.
+- **Custom LLM-as-Judge** (`02-evaluation-baseline/custom_evaluators.py`) — 7 domain-specific evaluators defined and run locally in Module 02a to establish the first quality contract.
+- **AgentCore built-in evaluators** — AWS-managed LLM-as-Judge running in the cloud. Module 02a demonstrates on-demand calls, Module 03 uses managed batch evaluation for the release-candidate gate, Module 04 uses online evidence and trace mining, and Module 05 uses managed evaluation metrics for optimization experiments.
 
 ---
 
@@ -182,39 +184,41 @@ Establish quality baselines before deployment using the seven custom evaluators 
 
 The notebook also demonstrates Layer 1 deterministic assertions (Step 3b), Layer 2 LLM-as-Judge evaluation (Steps 4–6), and Layer 3 meta-evaluation against expert-labeled known-answer pairs. Step 10 additionally calls the AgentCore Evaluate API with three built-in evaluators for a side-by-side comparison.
 
-> **Module 02b (DeepEval) is optional** — it demonstrates an alternative evaluation framework. The core workshop path uses strands-evals (Module 02a), whose evaluators are reused in Module 05 for production batch evaluation.
+> **Module 02b (DeepEval) is optional** — it demonstrates an alternative evaluation framework. The core workshop path uses Module 02a to create local quality evidence that Section 03a turns into managed ground-truth datasets and simulation scenarios.
 
 ### Module 3: Production Deployment [Pyramid: —]
 **Directory**: `03-production-deployment/`
 
 Deploy agents to AWS with full observability:
+- Convert Section 02 evaluation evidence into ground-truth datasets and simulation scenarios in `03a-ground-truth-dataset.ipynb`
 - Package agents for AgentCore Runtime
 - Configure AgentCore Gateway for MCP tools
 - Deploy with auto-instrumented OTEL tracing
 - Verify deployment with test invocations
+- Run an AgentCore batch evaluation as the release-candidate gate and save durable deployment evidence
 
-### Module 4: Online Evaluation & Observability [Pyramid: Layer 2 — built-in]
+### Module 4: Online Evaluation, Observability & Feedback Loop [Pyramid: Layer 2 — built-in]
 **Directory**: `04-online-eval-observability/`
 
-Monitor and evaluate agents in production (8 steps):
-- Configure online evaluation with four AWS-managed **built-in** evaluators (Helpfulness, GoalSuccessRate, ToolSelectionAccuracy, Coherence) at 100% sampling for demo — reduce to 10–20% in production.
-- Generate test data and validate tool connectivity
-- Explore OTEL traces in CloudWatch (span flow, tool calls, latency)
-- Extract and analyze tool call patterns from trace spans (`aws/spans` log group)
-- Build a CloudWatch custom dashboard as a "single pane of glass" — operations metrics + evaluation scores + tool calls + token usage + cost
+Monitor production behavior and turn reviewed evidence into better evaluation assets:
+- Confirm online evidence from the deployed AgentCore runtime
+- Mine OTEL spans from CloudWatch for tool usage, failures, latency, and candidate evaluation examples
+- Review mined candidates before promotion so production traces do not automatically become tests
+- Update the managed dataset lineage with reviewed examples
+- Save an online evidence manifest and dataset update manifest for optimization
 
-> **Note:** This module uses *built-in* evaluators only, for simplicity and to highlight AWS-managed operations. AgentCore also supports custom LLM-as-Judge and Lambda-backed evaluators via `CreateEvaluator` — see [AgentCore Evaluators docs](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluators.html). Module 02a Step 10 demonstrates calling built-in evaluators on-demand; Module 05 combines built-in on-demand calls with custom batch evaluation.
+> **Note:** This module treats production traces as evidence, not automatic truth. Human or policy review decides which examples become managed dataset updates.
 
-### Module 5: Production Batch Evaluation [Pyramid: Layer 2 — custom]
-**Directory**: `05-production-batch-evaluation/`
+### Module 5: AgentCore Optimization & Release Decision [Pyramid: Layer 2 — managed]
+**Directory**: `05-agentcore-optimization/`
 
-Evaluate production traffic at scale:
-- Export OTEL traces from agent runtime logs (primary path: CloudWatch Logs Insights query; alternative path: Firehose → S3 for scheduled batches)
-- Classify tool calls by category (READ vs WRITE)
-- Run batch evaluation with the same seven custom evaluators from Module 2
-- Detect drift by comparing production scores against Module 2 baselines
-- Close the feedback loop: production failures are appended in-place to `02-evaluation-baseline/evaluation_dataset.json` with `source="production_feedback"`, so the next Module 2 run treats them as regression tests
-- Replace the Module 4 placeholder dashboard with a unified view combining operational metrics, online eval scores, and batch eval scores
+Optimize the deployed agent using the evidence prepared by earlier modules:
+- Read the Section 03 deployment and batch-evaluation manifests plus the Section 04 feedback artifacts
+- Run AgentCore Optimization Insights and recommendation analysis
+- Build candidate config bundles for prompt/model/tool-policy changes
+- Run a managed A/B experiment against the current runtime endpoint
+- Review A/B metric counts, evaluator scores, confidence signals, and errors before deciding
+- Save a release decision report and promotion manifest; promotion is explicit and only proceeds when the gate allows it
 
 ---
 
@@ -222,37 +226,28 @@ Evaluate production traffic at scale:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                   Production Evaluation Pipeline                             │
+│              Agent Evaluation and Optimization Journey on AWS                │
 │                                                                              │
-│  Agent Runtime  ──OTEL──▶  CloudWatch Log Groups                            │
-│                           (/aws/bedrock-agentcore/runtimes/*, aws/spans)    │
+│  Module 02              Module 03a              Module 03                    │
+│  Local quality      ──▶ Ground truth and   ──▶  Runtime deployment           │
+│  contract               simulations             + batch release gate         │
+│       │                       │                        │                     │
+│       │                       ▼                        ▼                     │
+│       │              AgentCore managed          AgentCore Runtime             │
+│       │              datasets and versions      + Gateway + OTEL traces      │
+│       │                                                │                     │
+│       ▼                                                ▼                     │
+│  Baseline evidence        Module 04              CloudWatch spans            │
+│  and thresholds      ◀──  Online evidence  ◀───  online evaluation           │
+│                           + reviewed feedback     and production traces      │
 │                                   │                                          │
-│           ┌───────────────────────┼───────────────────────────┐              │
-│           │                       │                           │              │
-│           ▼ PRIMARY PATH          ▼ ALTERNATIVE PATH          ▼              │
-│  ┌──────────────────┐   ┌──────────────────────────┐   ┌──────────────┐     │
-│  │ Online Eval      │   │ Subscription Filter      │   │ Logs Insights│     │
-│  │ (Module 04)      │   │ → Kinesis Firehose       │   │ direct query │     │
-│  │ Built-in         │   │ → S3 Bucket              │   │ (Module 05   │     │
-│  │ evaluators       │   │ (historical replay)      │   │  Step 5)     │     │
-│  │ on live traffic  │   └──────────────────────────┘   └──────┬───────┘     │
-│  └────────┬─────────┘                                         │              │
-│           │                                                    ▼              │
-│           │                                          ┌──────────────────┐    │
-│           │                                          │ Batch Evaluation │    │
-│           │                                          │ Module 05 — 7    │    │
-│           │                                          │ custom evaluators│    │
-│           │                                          └────────┬─────────┘    │
-│           │                                                    │              │
-│           ▼                                                    ▼              │
-│  CloudWatch Metrics                               ┌──────────────────────┐   │
-│  Bedrock-AgentCore/Evaluations                    │ Drift Detection +    │   │
-│      │                                            │ Feedback Loop        │   │
-│      └──────────────┐                             │ (enriches Module 2   │   │
-│                     ▼                             │  dataset in-place)   │   │
-│            Unified Dashboard                      └──────────┬───────────┘   │
-│            EcommerceWorkshop-ProductCatalogAgent             │               │
-│            (built in Module 4, extended in Module 5) ◄───────┘               │
+│                                   ▼                                          │
+│                         Dataset update manifest                              │
+│                                   │                                          │
+│                                   ▼                                          │
+│                         Module 05 AgentCore Optimization                     │
+│                         Insights + recommendations + config bundles          │
+│                         + managed A/B metrics + release decision             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -260,7 +255,7 @@ Evaluate production traffic at scale:
 
 ## Custom Evaluators
 
-The workshop teaches you to build domain-specific evaluators. All seven live in `02-evaluation-baseline/custom_evaluators.py` and are reused by Module 05 for batch evaluation:
+The workshop teaches you to build domain-specific evaluators. All seven live in `02-evaluation-baseline/custom_evaluators.py` and establish the local quality contract in Module 02a:
 
 | Evaluator | What It Measures | Example Criteria |
 |-----------|------------------|------------------|
@@ -307,7 +302,7 @@ Enable in Amazon Bedrock console (using global cross-region inference):
 
 3. **Run modules in order**
   ```
-  # Module 0 → Module 1 → Module 2 → Module 3 → Module 4 → Module 5
+  # Module 0 → Module 1 → Module 2 → Module 3a → Module 3 → Module 4 → Module 5
   ```
 
 ---
@@ -320,8 +315,9 @@ After completing this workshop, you'll understand:
 2. **Observability enables improvement** — You can't fix what you can't see
 3. **AgentCore simplifies operations** — Focus on agent logic, not infrastructure
 4. **OTEL traces reveal behavior** — See exactly which tools agents call and why
-5. **Batch evaluation closes the loop** — Production failures that score below threshold are appended in-place to Module 2's `evaluation_dataset.json` with `source="production_feedback"`, so the next offline run automatically treats them as regression tests
-6. **Two classes of Layer 2 evaluators have different roles** — Custom rubrics (Modules 02a, 05) capture domain-specific quality that built-ins can't know; AgentCore built-ins (Module 04) are zero-ops managed infra for continuous monitoring
+5. **Managed evaluation creates durable gates** — Section 03 batch evaluation records the release-candidate baseline before production feedback and optimization begin
+6. **Feedback should be reviewed before it becomes truth** — Section 04 mines production traces, but only reviewed examples update the managed datasets
+7. **Optimization needs evidence, not guesses** — Section 05 uses AgentCore recommendations, config bundles, A/B metrics, and an explicit release decision before promotion
 
 
 ---

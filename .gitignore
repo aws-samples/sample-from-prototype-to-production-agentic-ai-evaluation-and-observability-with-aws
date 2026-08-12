@@ -46,9 +46,14 @@ config
 *.pem
 *.key
 
+# Workshop behavior contract config (not credentials)
+!01-single-agent-prototype/config/
+!01-single-agent-prototype/config/**
+
 # Environment variables
 .env
 .env.local
+.env.omni
 
 # Test outputs
 test_output/
@@ -66,20 +71,40 @@ htmlcov/
 coverage.xml
 
 # Local data (results from running notebooks)
+00-prerequisites/workshop_state.json
 02-evaluation-baseline/evaluation_results.csv
 02-evaluation-baseline/baseline_metrics.json
 02-evaluation-baseline/.deepeval/
 02-evaluation-baseline/deepeval_results.json
 02-evaluation-baseline/deterministic_results.json
+02-evaluation-baseline/release_gate_evidence.json
+02-evaluation-baseline/run_manifest.json
 02-evaluation-baseline/test_step10.py
 03-production-deployment/deployment_config.json
+03-production-deployment/batch_evaluation_manifest.json
+03-production-deployment/dataset_manifest.json
+03-production-deployment/deployment_manifest.json
+03-production-deployment/postdeploy_ground_truth.json
+03-production-deployment/postdeploy_simulation_scenarios.json
 03-production-deployment/streamlit_app/gateway_config.json
 03-production-deployment/streamlit_app/agent_config.json
-05-production-batch-evaluation/evaluation_results/
+04-online-eval-observability/dataset_update_manifest.json
+04-online-eval-observability/online_evidence_manifest.json
+04-online-eval-observability/production_feedback_candidates.json
+04-online-eval-observability/promoted_feedback_examples.json
+04-online-eval-observability/section04_timing.json
+04-online-eval-observability/screenshots/
+05-agentcore-optimization/ab_smoke_proof.json
+05-agentcore-optimization/ab_smoke_result.json
+05-agentcore-optimization/optimization_manifest.json
+05-agentcore-optimization/promotion_manifest.json
+05-agentcore-optimization/release_decision_report.json
+05-agentcore-optimization/section05_timing.json
 
 # Internal tooling (not part of the workshop)
 CLAUDE.md
 docs/workshop-analysis-and-recommendations.md
+specs/
 
 # MacOS
 .DS_Store
@@ -88,3 +113,9 @@ docs/workshop-analysis-and-recommendations.md
 
 # Thumbnails
 ._*
+.omni/
+.claude/
+.github/
+.cursor/
+.kiro/
+.agents/
