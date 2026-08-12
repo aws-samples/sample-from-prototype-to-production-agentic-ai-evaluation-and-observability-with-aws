@@ -50,7 +50,7 @@ def demo_credentials(config):
         "Customer": {
             "email": os.environ.get(
                 'SECTION03_CUSTOMER_EMAIL',
-                f"customer+{suffix}@example.invalid",
+                f"customer+{suffix}@example.com",
             ),
             "password": password,
             "role": "customer",
@@ -58,7 +58,7 @@ def demo_credentials(config):
         "Admin": {
             "email": os.environ.get(
                 'SECTION03_ADMIN_EMAIL',
-                f"admin+{suffix}@example.invalid",
+                f"admin+{suffix}@example.com",
             ),
             "password": password,
             "role": "admin",
