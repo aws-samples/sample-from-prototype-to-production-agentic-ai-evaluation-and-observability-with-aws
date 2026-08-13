@@ -497,6 +497,19 @@ class Section03NotebookContractTests(unittest.TestCase):
             "run_evaluation_with_trace_retries",
             "summarize_postdeploy_scores",
             "Post-deployment quality gate did not pass",
+            "Step 14b: Workshop Continuation Override Optional",
+            "WORKSHOP CONTINUATION OVERRIDE",
+            "We are marking this gate as PASSED only so the workshop can run the rest of the notebook.",
+            "postdeploy_quality_gate_before_workshop_override",
+            "workshop_continuation_override",
+            "Step 15b: Retry Batch Evaluation Without Reinvoking The Agent Optional",
+            "RETRYING BATCH EVALUATION AGAINST EXISTING SESSIONS",
+            "The agent will not be invoked again; this only reprocesses existing trace/log evidence.",
+            "LogEventMissingException",
+            "Step 15c: Workshop Batch Baseline Override Optional",
+            "BATCH EVALUATION WORKSHOP CONTINUATION OVERRIDE",
+            "batch_evaluation_manifest_before_workshop_override",
+            "original_batch_evaluation_status",
             "BatchEvaluationRunner",
             "BatchEvaluationRunConfig",
             "CloudWatchDataSourceConfig",
@@ -511,6 +524,10 @@ class Section03NotebookContractTests(unittest.TestCase):
             self.assertIn(expected_text, text)
 
         self.assertNotIn("bedrock_agentcore_starter_toolkit import Evaluation", text)
+        self.assertNotIn(
+            'raise RuntimeError(\\n        "Post-deployment quality gate did not pass.',
+            text,
+        )
 
     def test_runtime_agent_has_custom_spans_and_sanitized_errors(self):
         text = (SECTION_DIR / "agents" / "product_catalog_agent.py").read_text(
