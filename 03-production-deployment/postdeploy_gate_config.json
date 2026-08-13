@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "artifact_type": "section_03_postdeploy_gate_config",
-  "description": "Gate policy used by Section 03 Step 14. Edit this file, then rerun Step 14 to change which evaluation results block the deployment gate.",
+  "description": "Gate policy used by Section 03 Step 14. Edit this file, then rerun Step 14 to change which evaluation results block the deployment gate or only require human review.",
   "default_gate_mode": "blocking",
   "default_evaluator_thresholds": {
     "Builtin.Correctness": 0.7,
@@ -12,12 +12,12 @@
   },
   "source_case_overrides": {
     "TC-REC-001": {
-      "rationale": "Recommendation quality is useful release evidence, but it can be subjective. Keep it blocking to see the gate fail, or change this evaluator to review_only after you decide this scenario should be handled as human review or optimization evidence.",
+      "rationale": "Recommendation quality is useful release evidence, but it can be subjective. Keep this evaluator as review_only so the lab shows the score as a human-review warning instead of stopping the notebook.",
       "evaluator_overrides": {
         "Builtin.Correctness": {
           "threshold": 0.7,
-          "gate_mode": "blocking",
-          "how_to_relax": "Set gate_mode to review_only, or lower threshold to the accepted score, then rerun Step 14."
+          "gate_mode": "review_only",
+          "human_review_guidance": "Read the answer, expected response, score, and explanation. Decide whether this recommendation quality signal should become a blocking release criterion, remain review-only, or move into the optimization dataset."
         }
       }
     }

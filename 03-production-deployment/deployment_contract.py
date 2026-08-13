@@ -471,7 +471,7 @@ def summarize_postdeploy_scores(
             )
             if status == "FAIL":
                 failures.append(f"{scenario_id}:{evaluator_id} below threshold")
-            elif status == "REVIEW":
+            elif status in {"WARNING", "REVIEW"}:
                 reviews.append(f"{scenario_id}:{evaluator_id}:review_only")
             elif status in {"PENDING", "SKIPPED", "ERROR"}:
                 pending.append(f"{scenario_id}:{evaluator_id}:{status}")
@@ -493,6 +493,7 @@ def summarize_postdeploy_scores(
         "scores": scores,
         "failure_reasons": failures,
         "pending_reasons": pending,
+        "warning_reasons": reviews,
         "review_reasons": reviews,
         "total_observability_events": total_observability_events,
     }

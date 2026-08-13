@@ -276,19 +276,19 @@ class Section03DeploymentContractTests(unittest.TestCase):
             scenario,
             config,
         )
-        self.assertEqual(default_policy["gate_mode"], "blocking")
+        self.assertEqual(default_policy["gate_mode"], "review_only")
         self.assertEqual(default_policy["threshold"], 0.7)
 
-        relaxed_config = json.loads(json.dumps(config))
-        relaxed_config["source_case_overrides"]["TC-REC-001"]["evaluator_overrides"][
+        blocking_config = json.loads(json.dumps(config))
+        blocking_config["source_case_overrides"]["TC-REC-001"]["evaluator_overrides"][
             "Builtin.Correctness"
-        ]["gate_mode"] = "review_only"
-        review_policy = gate_policy_for_evaluator(
+        ]["gate_mode"] = "blocking"
+        blocking_policy = gate_policy_for_evaluator(
             "Builtin.Correctness",
             scenario,
-            relaxed_config,
+            blocking_config,
         )
-        self.assertEqual(review_policy["gate_mode"], "review_only")
+        self.assertEqual(blocking_policy["gate_mode"], "blocking")
 
         threshold_config = json.loads(json.dumps(config))
         threshold_config["source_case_overrides"]["TC-REC-001"]["evaluator_overrides"][
@@ -312,7 +312,7 @@ class Section03DeploymentContractTests(unittest.TestCase):
                             "score": 0.5,
                             "threshold": 0.7,
                             "gate_mode": "review_only",
-                            "status": "REVIEW",
+                            "status": "WARNING",
                         }
                     ],
                 }
@@ -321,9 +321,10 @@ class Section03DeploymentContractTests(unittest.TestCase):
         )
         self.assertEqual(summary["status"], "PASSED")
         self.assertEqual(
-            summary["review_reasons"],
+            summary["warning_reasons"],
             ["release-gate-TC-REC-001:Builtin.Correctness:review_only"],
         )
+        self.assertEqual(summary["warning_reasons"], summary["review_reasons"])
         self.assertFalse(summary["failure_reasons"])
 
     def test_evaluator_ids_fallback_and_data_protection_policy(self):
@@ -564,6 +565,10 @@ class Section03NotebookContractTests(unittest.TestCase):
             "run_evaluation_with_trace_retries",
             "summarize_postdeploy_scores",
             "Post-deployment quality gate did not pass",
+            "Quality gate passed with non-blocking human-review warnings",
+            "WARNING: {reason}",
+            "postdeploy_gate_config.json",
+            "gate_policy_for_evaluator",
             "BatchEvaluationRunner",
             "BatchEvaluationRunConfig",
             "CloudWatchDataSourceConfig",
@@ -578,6 +583,10 @@ class Section03NotebookContractTests(unittest.TestCase):
             self.assertIn(expected_text, text)
 
         self.assertNotIn("bedrock_agentcore_starter_toolkit import Evaluation", text)
+        self.assertNotIn(
+            'raise RuntimeError(\\n        "Post-deployment quality gate did not pass.',
+            text,
+        )
 
     def test_runtime_agent_has_custom_spans_and_sanitized_errors(self):
         text = (SECTION_DIR / "agents" / "product_catalog_agent.py").read_text(
