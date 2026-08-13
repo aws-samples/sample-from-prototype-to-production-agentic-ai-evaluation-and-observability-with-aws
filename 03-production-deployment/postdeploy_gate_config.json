@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "artifact_type": "section_03_postdeploy_gate_config",
+  "description": "Gate policy used by Section 03 Step 14. Edit this file, then rerun Step 14 to change which evaluation results block the deployment gate.",
+  "default_gate_mode": "blocking",
+  "default_evaluator_thresholds": {
+    "Builtin.Correctness": 0.7,
+    "Builtin.GoalSuccessRate": 0.7,
+    "Builtin.Helpfulness": 0.65,
+    "Builtin.TrajectoryAnyOrderMatch": 1.0,
+    "Builtin.TrajectoryExactOrderMatch": 1.0
+  },
+  "source_case_overrides": {
+    "TC-REC-001": {
+      "rationale": "Recommendation quality is useful release evidence, but it can be subjective. Keep it blocking to see the gate fail, or change this evaluator to review_only after you decide this scenario should be handled as human review or optimization evidence.",
+      "evaluator_overrides": {
+        "Builtin.Correctness": {
+          "threshold": 0.7,
+          "gate_mode": "blocking",
+          "how_to_relax": "Set gate_mode to review_only, or lower threshold to the accepted score, then rerun Step 14."
+        }
+      }
+    }
+  }
+}

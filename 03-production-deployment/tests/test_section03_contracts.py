@@ -32,8 +32,11 @@ from deployment_contract import (
     ecr_image_evidence,
     endpoint_otel_service_name,
     evaluator_ids_for_scenario,
+    gate_policy_for_evaluator,
     gateway_qualified_tool_names,
+    load_postdeploy_gate_config,
     make_deployment_id,
+    POSTDEPLOY_GATE_CONFIG_PATH,
     reference_inputs_kwargs,
     scenario_runtime_payload,
     summarize_postdeploy_scores,
@@ -258,6 +261,70 @@ class Section03DeploymentContractTests(unittest.TestCase):
             total_observability_events=3,
         )
         self.assertEqual(pending["status"], "PENDING")
+
+    def test_postdeploy_gate_config_controls_threshold_and_review_mode(self):
+        self.assertTrue(POSTDEPLOY_GATE_CONFIG_PATH.is_file())
+        config = load_postdeploy_gate_config()
+        scenario = {
+            "scenario_id": "release-gate-TC-REC-001",
+            "source_test_case_id": "TC-REC-001",
+            "threshold_policy": {"Builtin.Correctness": 0.7},
+        }
+
+        default_policy = gate_policy_for_evaluator(
+            "Builtin.Correctness",
+            scenario,
+            config,
+        )
+        self.assertEqual(default_policy["gate_mode"], "blocking")
+        self.assertEqual(default_policy["threshold"], 0.7)
+
+        relaxed_config = json.loads(json.dumps(config))
+        relaxed_config["source_case_overrides"]["TC-REC-001"]["evaluator_overrides"][
+            "Builtin.Correctness"
+        ]["gate_mode"] = "review_only"
+        review_policy = gate_policy_for_evaluator(
+            "Builtin.Correctness",
+            scenario,
+            relaxed_config,
+        )
+        self.assertEqual(review_policy["gate_mode"], "review_only")
+
+        threshold_config = json.loads(json.dumps(config))
+        threshold_config["source_case_overrides"]["TC-REC-001"]["evaluator_overrides"][
+            "Builtin.Correctness"
+        ]["threshold"] = 0.5
+        threshold_policy = gate_policy_for_evaluator(
+            "Builtin.Correctness",
+            scenario,
+            threshold_config,
+        )
+        self.assertEqual(threshold_policy["threshold"], 0.5)
+
+    def test_review_only_evaluator_does_not_block_postdeploy_gate(self):
+        summary = summarize_postdeploy_scores(
+            [
+                {
+                    "scenario_id": "release-gate-TC-REC-001",
+                    "results": [
+                        {
+                            "evaluator_id": "Builtin.Correctness",
+                            "score": 0.5,
+                            "threshold": 0.7,
+                            "gate_mode": "review_only",
+                            "status": "REVIEW",
+                        }
+                    ],
+                }
+            ],
+            total_observability_events=3,
+        )
+        self.assertEqual(summary["status"], "PASSED")
+        self.assertEqual(
+            summary["review_reasons"],
+            ["release-gate-TC-REC-001:Builtin.Correctness:review_only"],
+        )
+        self.assertFalse(summary["failure_reasons"])
 
     def test_evaluator_ids_fallback_and_data_protection_policy(self):
         scenario = {

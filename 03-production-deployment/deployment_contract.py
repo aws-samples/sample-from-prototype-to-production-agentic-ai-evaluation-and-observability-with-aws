@@ -24,6 +24,9 @@ DATASET_MANIFEST_PATH = SECTION_DIR / "dataset_manifest.json"
 DEPLOYMENT_MANIFEST_PATH = SECTION_DIR / "deployment_manifest.json"
 BATCH_EVALUATION_MANIFEST_PATH = SECTION_DIR / "batch_evaluation_manifest.json"
 POSTDEPLOY_GROUND_TRUTH_PATH = SECTION_DIR / "postdeploy_ground_truth.json"
+POSTDEPLOY_GATE_CONFIG_PATH = SECTION_DIR / "postdeploy_gate_config.json"
+
+VALID_GATE_MODES = {"blocking", "review_only"}
 
 DENYLIST_KEY_FRAGMENTS = {
     "authorization",
@@ -339,6 +342,104 @@ def threshold_for_evaluator(
     return default
 
 
+def load_postdeploy_gate_config(
+    path: Path = POSTDEPLOY_GATE_CONFIG_PATH,
+) -> dict[str, Any]:
+    """Load the Step 14 quality gate policy."""
+    if not path.is_file():
+        return {
+            "version": "default",
+            "artifact_type": "section_03_postdeploy_gate_config",
+            "default_gate_mode": "blocking",
+            "default_evaluator_thresholds": {},
+            "source_case_overrides": {},
+            "scenario_overrides": {},
+        }
+    config = load_json(path)
+    validate_postdeploy_gate_config(config)
+    return config
+
+
+def validate_postdeploy_gate_config(config: Mapping[str, Any]) -> None:
+    if config.get("artifact_type") != "section_03_postdeploy_gate_config":
+        raise DeploymentContractError(
+            "postdeploy gate config has wrong artifact_type"
+        )
+    default_mode = str(config.get("default_gate_mode", "blocking"))
+    if default_mode not in VALID_GATE_MODES:
+        raise DeploymentContractError(f"Invalid default_gate_mode: {default_mode}")
+
+    for evaluator_id, threshold in (config.get("default_evaluator_thresholds") or {}).items():
+        if not isinstance(evaluator_id, str) or not isinstance(threshold, (int, float)):
+            raise DeploymentContractError("default_evaluator_thresholds must map strings to numbers")
+
+    for override_group in ["source_case_overrides", "scenario_overrides"]:
+        overrides = config.get(override_group) or {}
+        if not isinstance(overrides, Mapping):
+            raise DeploymentContractError(f"{override_group} must be an object")
+        for override_key, override in overrides.items():
+            if not isinstance(override_key, str) or not isinstance(override, Mapping):
+                raise DeploymentContractError(f"{override_group} entries must be objects")
+            evaluator_overrides = override.get("evaluator_overrides") or {}
+            if not isinstance(evaluator_overrides, Mapping):
+                raise DeploymentContractError(
+                    f"{override_group}.{override_key}.evaluator_overrides must be an object"
+                )
+            for evaluator_id, evaluator_override in evaluator_overrides.items():
+                if not isinstance(evaluator_id, str) or not isinstance(evaluator_override, Mapping):
+                    raise DeploymentContractError("evaluator override entries must be objects")
+                threshold = evaluator_override.get("threshold")
+                if threshold is not None and not isinstance(threshold, (int, float)):
+                    raise DeploymentContractError("evaluator override threshold must be numeric")
+                gate_mode = evaluator_override.get("gate_mode")
+                if gate_mode is not None and str(gate_mode) not in VALID_GATE_MODES:
+                    raise DeploymentContractError(f"Invalid evaluator gate_mode: {gate_mode}")
+
+    validate_no_sensitive_values(config)
+
+
+def gate_policy_for_evaluator(
+    evaluator_id: str,
+    scenario: Mapping[str, Any],
+    gate_config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Resolve threshold and blocking policy for a scenario/evaluator pair."""
+    config = gate_config or {}
+    threshold = threshold_for_evaluator(evaluator_id, scenario)
+    default_thresholds = config.get("default_evaluator_thresholds") or {}
+    if isinstance(default_thresholds.get(evaluator_id), (int, float)):
+        threshold = float(default_thresholds[evaluator_id])
+
+    gate_mode = str(config.get("default_gate_mode", "blocking"))
+    rationale = None
+
+    for override_group, key in [
+        ("source_case_overrides", scenario.get("source_test_case_id")),
+        ("scenario_overrides", scenario.get("scenario_id")),
+    ]:
+        if not key:
+            continue
+        override = (config.get(override_group) or {}).get(str(key)) or {}
+        if override.get("rationale"):
+            rationale = str(override["rationale"])
+        evaluator_override = (override.get("evaluator_overrides") or {}).get(evaluator_id) or {}
+        if isinstance(evaluator_override.get("threshold"), (int, float)):
+            threshold = float(evaluator_override["threshold"])
+        if evaluator_override.get("gate_mode"):
+            gate_mode = str(evaluator_override["gate_mode"])
+        if evaluator_override.get("rationale"):
+            rationale = str(evaluator_override["rationale"])
+
+    if gate_mode not in VALID_GATE_MODES:
+        raise DeploymentContractError(f"Invalid resolved gate_mode: {gate_mode}")
+
+    return {
+        "threshold": threshold,
+        "gate_mode": gate_mode,
+        "rationale": rationale,
+    }
+
+
 def summarize_postdeploy_scores(
     scenario_results: Sequence[Mapping[str, Any]],
     *,
@@ -347,6 +448,7 @@ def summarize_postdeploy_scores(
 ) -> dict[str, Any]:
     failures = list(invocation_failures)
     pending = []
+    reviews = []
     scores: list[dict[str, Any]] = []
 
     for scenario_result in scenario_results:
@@ -356,6 +458,7 @@ def summarize_postdeploy_scores(
             score = result.get("score")
             threshold = result.get("threshold")
             status = result.get("status")
+            gate_mode = result.get("gate_mode", "blocking")
             scores.append(
                 {
                     "scenario_id": scenario_id,
@@ -363,10 +466,13 @@ def summarize_postdeploy_scores(
                     "score": score,
                     "threshold": threshold,
                     "status": status,
+                    "gate_mode": gate_mode,
                 }
             )
             if status == "FAIL":
                 failures.append(f"{scenario_id}:{evaluator_id} below threshold")
+            elif status == "REVIEW":
+                reviews.append(f"{scenario_id}:{evaluator_id}:review_only")
             elif status in {"PENDING", "SKIPPED", "ERROR"}:
                 pending.append(f"{scenario_id}:{evaluator_id}:{status}")
 
@@ -387,6 +493,7 @@ def summarize_postdeploy_scores(
         "scores": scores,
         "failure_reasons": failures,
         "pending_reasons": pending,
+        "review_reasons": reviews,
         "total_observability_events": total_observability_events,
     }
 
