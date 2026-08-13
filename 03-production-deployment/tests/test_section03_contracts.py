@@ -13,6 +13,7 @@ sys.path.insert(0, str(SECTION_DIR))
 from dataset_contract import (
     DatasetContractError,
     PREDEFINED_SCHEMA,
+    SECTION03_PREDEFINED_HARD_GATE_SOURCE_IDS,
     SIMULATED_SCHEMA,
     assert_managed_dataset_ready,
     build_local_dataset_artifacts,
@@ -84,6 +85,44 @@ class Section03DatasetContractTests(unittest.TestCase):
         deferred = manifest["deferred_predefined_release_gate_records"]
         self.assertEqual(deferred[0]["source_test_case_id"], "TC-MULTI-001")
         self.assertIn("multi-turn runtime memory", deferred[0]["deferred_reason"])
+
+    def test_subjective_recommendation_case_is_not_promoted_to_hard_gate(self):
+        contract = json.loads(json.dumps(self.artifacts["section02_contract"]))
+        records = contract["release_gate_evidence"]["records"]
+        recommendation = next(
+            record for record in records if record["source_test_case_id"] == "TC-REC-001"
+        )
+        recommendation["gate_decision"] = "pass"
+        recommendation["eligible_for_section_03a_ground_truth"] = True
+        recommendation["hard_failures"] = []
+        recommendation["soft_warnings"] = []
+
+        artifacts = build_local_dataset_artifacts(
+            region="us-east-1",
+            account_id="123456789012",
+            section02_contract=contract,
+        )
+        ground_truth_ids = {
+            scenario["source_test_case_id"]
+            for scenario in artifacts["postdeploy_ground_truth"]["scenarios"]
+        }
+        simulation_ids = {
+            scenario["metadata"]["source_test_case_id"]
+            for scenario in artifacts["postdeploy_simulation_scenarios"]["scenarios"]
+        }
+        deferred = artifacts["dataset_manifest"]["deferred_predefined_release_gate_records"]
+
+        self.assertTrue(ground_truth_ids <= SECTION03_PREDEFINED_HARD_GATE_SOURCE_IDS)
+        self.assertNotIn("TC-REC-001", ground_truth_ids)
+        self.assertIn("TC-REC-001", simulation_ids)
+        self.assertIn(
+            "not part of the stable Section 03 deployment hard gate",
+            next(
+                item["deferred_reason"]
+                for item in deferred
+                if item["source_test_case_id"] == "TC-REC-001"
+            ),
+        )
 
     def test_reference_inputs_kwargs_are_ground_truth_only(self):
         scenario = self.artifacts["postdeploy_ground_truth"]["scenarios"][0]
@@ -568,6 +607,38 @@ class Section03NotebookContractTests(unittest.TestCase):
         self.assertIn("redact_email", notebook_text)
         self.assertIn("demo_credentials", app_text)
         self.assertIn("SECTION03_TEST_PASSWORD", app_text)
+
+    def test_streamlit_is_declared_as_workshop_dependency(self):
+        repo_root = SECTION_DIR.parent
+        pyproject_text = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
+        requirements_text = (
+            repo_root / "00-prerequisites" / "requirements.txt"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("streamlit>=1.40.0", pyproject_text)
+        self.assertIn("streamlit>=1.40.0", requirements_text)
+
+    def test_notebook_launches_streamlit_with_health_checked_workshop_port(self):
+        notebook_text = (SECTION_DIR / "03-production-deployment.ipynb").read_text(
+            encoding="utf-8"
+        )
+
+        for expected_text in [
+            "STREAMLIT_PORT",
+            "start_streamlit_app(STREAMLIT_PORT)",
+            "sys.executable",
+            "--server.address",
+            "0.0.0.0",
+            "--server.port",
+            "_stcore/health",
+            "/ports/{STREAMLIT_PORT}/",
+            "STREAMLIT_LOG_PATH",
+        ]:
+            self.assertIn(expected_text, notebook_text)
+
+        self.assertNotIn("pip install streamlit boto3", notebook_text)
+        self.assertNotIn("streamlit run app.py", notebook_text)
+        self.assertNotIn("http://localhost:8501", notebook_text)
 
     def test_notebook_and_utils_sanitize_exception_output(self):
         notebook_text = (SECTION_DIR / "03-production-deployment.ipynb").read_text(

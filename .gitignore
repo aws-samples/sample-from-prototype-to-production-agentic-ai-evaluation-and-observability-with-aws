@@ -88,6 +88,8 @@ coverage.xml
 03-production-deployment/postdeploy_simulation_scenarios.json
 03-production-deployment/streamlit_app/gateway_config.json
 03-production-deployment/streamlit_app/agent_config.json
+03-production-deployment/streamlit_app/streamlit.log
+03-production-deployment/streamlit_app/streamlit.pid
 04-online-eval-observability/dataset_update_manifest.json
 04-online-eval-observability/online_evidence_manifest.json
 04-online-eval-observability/production_feedback_candidates.json

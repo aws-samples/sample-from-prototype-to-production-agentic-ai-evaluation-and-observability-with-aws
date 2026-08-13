@@ -23,6 +23,7 @@ python-dotenv>=1.0.0
 # Jupyter
 jupyter>=1.0.0
 ipywidgets>=8.0.0
+streamlit>=1.40.0
 
 # Utilities
 uuid

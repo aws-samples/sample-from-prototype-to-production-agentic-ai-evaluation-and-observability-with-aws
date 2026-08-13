@@ -35,6 +35,13 @@ POSTDEPLOY_SIMULATION_SCENARIOS_PATH = SECTION_DIR / "postdeploy_simulation_scen
 PREDEFINED_SCHEMA = "AGENTCORE_EVALUATION_PREDEFINED_V1"
 SIMULATED_SCHEMA = "AGENTCORE_EVALUATION_SIMULATED_V1"
 
+SECTION03_PREDEFINED_HARD_GATE_SOURCE_IDS = {
+    "TC-DETAILS-001",
+    "TC-ADMIN-007",
+    "TC-RBAC-001",
+    "TC-OOS-001",
+}
+
 DENYLIST_KEY_FRAGMENTS = {
     "authorization",
     "bearer",
@@ -154,11 +161,12 @@ def requires_stateful_runtime(record: Mapping[str, Any]) -> bool:
 def eligible_predefined_release_gate_records(
     evidence: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    """Records that can be used as a hard gate for the stateless Section 03 runtime."""
+    """Records that can be used as a stable hard gate for the stateless Section 03 runtime."""
     records = [
         record
         for record in eligible_release_gate_records(evidence)
         if not requires_stateful_runtime(record)
+        and str(record.get("source_test_case_id")) in SECTION03_PREDEFINED_HARD_GATE_SOURCE_IDS
     ]
     if not records:
         raise DatasetContractError(
@@ -184,23 +192,36 @@ def excluded_release_gate_records(evidence: Mapping[str, Any]) -> list[dict[str,
 
 
 def deferred_predefined_release_gate_records(evidence: Mapping[str, Any]) -> list[dict[str, Any]]:
-    return [
-        {
-            "source_test_case_id": record.get("source_test_case_id"),
-            "gate_decision": record.get("gate_decision"),
-            "eligible_for_section_03a_ground_truth": record.get(
-                "eligible_for_section_03a_ground_truth"
-            ),
-            "role": record.get("role"),
-            "category": record.get("category"),
-            "deferred_reason": (
+    deferred = []
+    for record in eligible_release_gate_records(evidence):
+        source_id = str(record.get("source_test_case_id"))
+        if requires_stateful_runtime(record):
+            reason = (
                 "requires multi-turn runtime memory; retained in simulated scenarios "
                 "until Section 03 introduces stateful conversation memory"
-            ),
-        }
-        for record in eligible_release_gate_records(evidence)
-        if requires_stateful_runtime(record)
-    ]
+            )
+        elif source_id not in SECTION03_PREDEFINED_HARD_GATE_SOURCE_IDS:
+            reason = (
+                "not part of the stable Section 03 deployment hard gate; retained for "
+                "simulation, review, or optimization evidence instead of blocking the "
+                "live post-deployment gate"
+            )
+        else:
+            continue
+
+        deferred.append(
+            {
+                "source_test_case_id": record.get("source_test_case_id"),
+                "gate_decision": record.get("gate_decision"),
+                "eligible_for_section_03a_ground_truth": record.get(
+                    "eligible_for_section_03a_ground_truth"
+                ),
+                "role": record.get("role"),
+                "category": record.get("category"),
+                "deferred_reason": reason,
+            }
+        )
+    return deferred
 
 
 def source_case_index(evaluation_dataset: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
