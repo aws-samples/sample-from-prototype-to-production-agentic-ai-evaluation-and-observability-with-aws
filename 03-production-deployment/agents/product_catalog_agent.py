@@ -34,7 +34,7 @@ tracer = trace.get_tracer(__name__)
 # ---------------------------------------------------------------------------
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "")
 AGENT_REGION = os.environ.get("AGENT_REGION", os.environ.get("AWS_REGION", "us-west-2"))
-MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-sonnet-4-6")
+MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-sonnet-5")
 DEPLOYMENT_ID = os.environ.get("DEPLOYMENT_ID", "unknown")
 AGENT_VERSION = os.environ.get("AGENT_VERSION", "section03-local")
 PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "unknown")

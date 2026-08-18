@@ -8,7 +8,7 @@
   "unknown_role_strategy": "least_privilege",
   "model": {
     "provider": "bedrock",
-    "model_id": "global.anthropic.claude-sonnet-4-6",
+    "model_id": "global.anthropic.claude-sonnet-5",
     "region_source": "notebook_or_runtime",
     "temperature": 0.3,
     "max_tokens": 1500

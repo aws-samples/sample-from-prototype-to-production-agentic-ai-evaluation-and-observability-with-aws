@@ -29,7 +29,7 @@ REQUIRED_PARAMETERS = {
     "products_table": f"{WORKSHOP_PREFIX}-products-table",
 }
 MODEL_IDS = [
-    "anthropic.claude-sonnet-4-6",  # Claude Sonnet 4.6
+    "anthropic.claude-sonnet-5",  # Claude Sonnet 5
 ]
 
 
@@ -433,7 +433,7 @@ def main():
     print("3. Checking Bedrock Model Access...")
     model_results = check_bedrock_models(bedrock, MODEL_IDS)
     print("   Note: Workshop uses global inference profile:")
-    print("   - global.anthropic.claude-sonnet-4-6")
+    print("   - global.anthropic.claude-sonnet-5")
     print()
 
     # 4. Check SSM Parameters

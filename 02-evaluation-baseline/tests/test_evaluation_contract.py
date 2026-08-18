@@ -124,10 +124,10 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=[case["id"] for case in selected_cases],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id="global.anthropic.claude-sonnet-5",
             agent_manifest={
                 "agent": {"name": "ProductCatalogAgent", "version": "local-rbac-v1"},
-                "model": {"model_id": "global.anthropic.claude-sonnet-4-6"},
+                "model": {"model_id": "global.anthropic.claude-sonnet-5"},
                 "config": {
                     "prompt_version": "product-catalog-prompts-v1",
                     "tool_policy_version": "product-catalog-tool-policy-v1",
@@ -149,7 +149,7 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=[selected_case["id"]],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id="global.anthropic.claude-sonnet-5",
         )
         attrs = safe_span_attributes(case=selected_case, run_manifest=manifest)
         validate_safe_span_attributes(attrs)
@@ -177,7 +177,7 @@ class EvaluationContractTests(unittest.TestCase):
             "eval.synthetic": True,
             "agent.name": "ProductCatalogAgent",
             "agent.role": "customer",
-            "agent.model_id": "global.anthropic.claude-sonnet-4-6",
+            "agent.model_id": "global.anthropic.claude-sonnet-5",
         }
 
         enriched = attach_safe_span_attributes([span], attrs)
@@ -207,7 +207,7 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=["TC-RBAC-001"],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id="global.anthropic.claude-sonnet-5",
         )
         results = [
             {

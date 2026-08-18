@@ -159,7 +159,7 @@ class EvidenceContractTests(unittest.TestCase):
     def test_sensitive_value_blocking(self):
         with self.assertRaises(EvidenceContractError):
             validate_no_sensitive_values({"authorization": "Bearer abc"})
-        validate_no_sensitive_values({"model_id": "global.anthropic.claude-sonnet-4-6"})
+        validate_no_sensitive_values({"model_id": "global.anthropic.claude-sonnet-5"})
 
 
 if __name__ == "__main__":

@@ -1134,7 +1134,7 @@ class OptimizationContractTests(unittest.TestCase):
         fake_access_key = "".join(["A", "KIA", "ABCDEFGHIJKLMNOP"])
         with self.assertRaises(OptimizationContractError):
             validate_no_sensitive_values({"note": fake_access_key})
-        validate_no_sensitive_values({"model_id": "global.anthropic.claude-sonnet-4-6"})
+        validate_no_sensitive_values({"model_id": "global.anthropic.claude-sonnet-5"})
 
 
 if __name__ == "__main__":

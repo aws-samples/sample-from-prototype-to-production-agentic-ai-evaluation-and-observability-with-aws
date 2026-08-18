@@ -113,7 +113,7 @@ The workshop teaches a layered evaluation approach — the **Evaluation Pyramid*
                                    │
                     ┌──────────────▼───────────────┐
                     │   PRODUCT CATALOG AGENT       │
-                    │   (Claude Sonnet 4.6)         │
+                    │   (Claude Sonnet 5)          │
                     │   • Role-aware system prompt  │
                     │   • Tool filtering by role    │
                     └──────────────┬───────────────┘
@@ -267,14 +267,14 @@ The workshop teaches you to build domain-specific evaluators. All seven live in 
 | **Response Quality** | Is the output accurate, complete, and professional? | Clear structure, correct facts, appropriate tone |
 | **Customer Satisfaction** | Predicted CSAT | Issue resolved, low effort, graceful denial with alternatives |
 
-The judge model for all seven is `global.anthropic.claude-sonnet-4-6` (cross-region inference profile, available in every AWS region).
+The judge model for all seven is `global.anthropic.claude-sonnet-5` (cross-region inference profile, available in every AWS region).
 
 ---
 
 ## Prerequisites
 
 ### AWS Services Required
-- Amazon Bedrock (Claude Sonnet 4.6)
+- Amazon Bedrock (Claude Sonnet 5)
 - Amazon Bedrock AgentCore (Runtime, Gateway)
 - Amazon DynamoDB
 - Amazon CloudWatch
@@ -284,7 +284,7 @@ The judge model for all seven is `global.anthropic.claude-sonnet-4-6` (cross-reg
 
 ### Model Access
 Enable in Amazon Bedrock console (using global cross-region inference):
-- `global.anthropic.claude-sonnet-4-6` (used for both the agent and the evaluation judge)
+- `global.anthropic.claude-sonnet-5` (used for both the agent and the evaluation judge)
 
 ---
 
