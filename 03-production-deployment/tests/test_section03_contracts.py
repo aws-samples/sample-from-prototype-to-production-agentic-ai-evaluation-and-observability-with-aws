@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 SECTION_DIR = Path(__file__).resolve().parents[1]
+MODEL_ID = "global.anthropic.claude-sonnet-5"
 sys.path.insert(0, str(SECTION_DIR))
 
 from dataset_contract import (
@@ -176,7 +177,7 @@ class Section03DeploymentContractTests(unittest.TestCase):
                 "tag": "rc-123",
                 "digest": "sha256:abc",
             },
-            model_id="global.anthropic.claude-sonnet-4-6",
+            model_id=MODEL_ID,
             otel_service_name="ecommerce_workshop_product_catalog_agent.DEFAULT",
             dataset_manifest=dataset_manifest,
             section02=dataset_manifest["source_section02"],
@@ -215,7 +216,7 @@ class Section03DeploymentContractTests(unittest.TestCase):
                 gateway={"gateway_id": "gw-123", "gateway_url": "https://gateway.example.invalid"},
                 cognito={"user_pool_id": "pool-123", "user_client_id": "client-123"},
                 image={"repository": "repo", "tag": "rc-123"},
-                model_id="global.anthropic.claude-sonnet-4-6",
+                model_id=MODEL_ID,
                 otel_service_name="service",
                 quality_gate={"status": "PASSED", "user_email": "alice@example.com"},
             )
@@ -287,7 +288,7 @@ class Section03DeploymentContractTests(unittest.TestCase):
         env = build_release_metadata_env(
             deployment_id="section03-20260808T000000Z-abc12345",
             agent_version="section03-rc-abc12345",
-            model_id="global.anthropic.claude-sonnet-4-6",
+            model_id=MODEL_ID,
             otel_service_name=otel_service_name,
             prompt_version="product-catalog-prompts-v1",
             tool_policy_version="product-catalog-tool-policy-v1",

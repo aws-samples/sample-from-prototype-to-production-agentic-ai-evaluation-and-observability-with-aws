@@ -107,7 +107,7 @@ def run_deterministic_checks(test_cases: list, responses: dict) -> list:
     return results
 
 
-def run_llm_judge(test_cases: list, responses: dict, model_id: str = "global.anthropic.claude-sonnet-4-6") -> list:
+def run_llm_judge(test_cases: list, responses: dict, model_id: str = "global.anthropic.claude-sonnet-5") -> list:
     """
     Run Layer 2 LLM-as-judge evaluations.
     
@@ -198,7 +198,7 @@ def main():
                         help='Comma-separated list of categories to evaluate')
     parser.add_argument('--threshold', type=float, default=0.7,
                         help='Pass/fail threshold for LLM judge scores')
-    parser.add_argument('--model', default='global.anthropic.claude-sonnet-4-6',
+    parser.add_argument('--model', default='global.anthropic.claude-sonnet-5',
                         help='Model ID for LLM judge')
     parser.add_argument('--output', default=None,
                         help='Output file for results JSON')
