@@ -8,7 +8,7 @@ by the user's role (customer vs admin).
 - Admin role: Full access including create, update, delete products and manage pricing/inventory
 
 Uses MCP (Model Context Protocol) to connect to the product service MCP server.
-Uses Claude Sonnet 4.6 for high-quality responses.
+Uses Claude Sonnet  for high-quality responses.
 """
 
 import os

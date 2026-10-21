@@ -9,6 +9,8 @@ from pathlib import Path
 SECTION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SECTION_DIR))
 
+MODEL_ID = "global.anthropic.claude-sonnet-5"
+
 from evaluation_contract import (
     EvaluationContractError,
     attach_safe_span_attributes,
@@ -124,10 +126,10 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=[case["id"] for case in selected_cases],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id=MODEL_ID,
             agent_manifest={
                 "agent": {"name": "ProductCatalogAgent", "version": "local-rbac-v1"},
-                "model": {"model_id": "global.anthropic.claude-sonnet-4-6"},
+                "model": {"model_id": MODEL_ID},
                 "config": {
                     "prompt_version": "product-catalog-prompts-v1",
                     "tool_policy_version": "product-catalog-tool-policy-v1",
@@ -149,7 +151,7 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=[selected_case["id"]],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id=MODEL_ID,
         )
         attrs = safe_span_attributes(case=selected_case, run_manifest=manifest)
         validate_safe_span_attributes(attrs)
@@ -177,7 +179,7 @@ class EvaluationContractTests(unittest.TestCase):
             "eval.synthetic": True,
             "agent.name": "ProductCatalogAgent",
             "agent.role": "customer",
-            "agent.model_id": "global.anthropic.claude-sonnet-4-6",
+            "agent.model_id": MODEL_ID,
         }
 
         enriched = attach_safe_span_attributes([span], attrs)
@@ -207,7 +209,7 @@ class EvaluationContractTests(unittest.TestCase):
             selected_test_case_ids=["TC-RBAC-001"],
             dataset=self.dataset,
             registry=self.registry,
-            judge_model_id="global.anthropic.claude-sonnet-4-6",
+            judge_model_id=MODEL_ID,
         )
         results = [
             {

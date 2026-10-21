@@ -37,7 +37,7 @@ class ProductCatalogConfigTests(unittest.TestCase):
         self.assertEqual(self.config.default_role, "customer")
         self.assertEqual(
             self.config.model_config["model_id"],
-            "global.anthropic.claude-sonnet-4-6",
+            "global.anthropic.claude-sonnet-5",
         )
         self.assertEqual(
             self.config.prompt_version,
