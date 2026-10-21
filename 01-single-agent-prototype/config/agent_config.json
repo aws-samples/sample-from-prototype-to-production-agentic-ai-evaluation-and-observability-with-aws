@@ -10,7 +10,6 @@
     "provider": "bedrock",
     "model_id": "global.anthropic.claude-sonnet-5",
     "region_source": "notebook_or_runtime",
-    "temperature": 0.3,
     "max_tokens": 1500
   },
   "mcp_server": {

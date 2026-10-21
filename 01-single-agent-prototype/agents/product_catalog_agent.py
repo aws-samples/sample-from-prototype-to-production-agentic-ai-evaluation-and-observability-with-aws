@@ -207,7 +207,6 @@ class ProductCatalogAgent:
         model = BedrockModel(
             model_id=model_config["model_id"],
             region_name=self.region,
-            temperature=model_config["temperature"],
             max_tokens=model_config["max_tokens"],
         )
 
