@@ -437,7 +437,6 @@ def invoke(payload=None, **kwargs):
             model = BedrockModel(
                 model_id=MODEL_ID,
                 region_name=AGENT_REGION,
-                temperature=0.3,
                 max_tokens=1500,
             )
 
