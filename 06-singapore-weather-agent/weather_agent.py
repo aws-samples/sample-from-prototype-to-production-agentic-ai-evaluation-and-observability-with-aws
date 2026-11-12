@@ -28,7 +28,7 @@ import nea_data
 
 HERE = Path(__file__).resolve().parent
 MODEL_ID = os.environ.get("WEATHER_AGENT_MODEL_ID", "global.anthropic.claude-sonnet-5")
-DEFAULT_PROMPT = "system_v2"
+DEFAULT_PROMPT = "system_v3"
 DEFAULT_VARIANT = {"prompt": DEFAULT_PROMPT, "tools": "local", "guardrail": False}
 TOOL_DELIMITER = "___"  # Gateway prefixes tool names with "<target>___"
 

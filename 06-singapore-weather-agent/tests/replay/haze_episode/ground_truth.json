@@ -1,0 +1,138 @@
+{
+ "captured_at": "SYNTHETIC replay scenario (not real NEA readings)",
+ "source_urls": [
+  "synthetic: tests/replay/haze_episode"
+ ],
+ "nowcast_2h": {
+  "issued": "1.00pm 21 Sep",
+  "valid": "1 to 3 pm",
+  "areas": {
+   "Ang Mo Kio": "Slightly Hazy",
+   "Bedok": "Slightly Hazy",
+   "Bishan": "Slightly Hazy",
+   "Boon Lay": "Hazy",
+   "Bukit Batok": "Slightly Hazy",
+   "Bukit Merah": "Hazy",
+   "Bukit Panjang": "Slightly Hazy",
+   "Bukit Timah": "Slightly Hazy",
+   "Central Water Catchment": "Slightly Hazy",
+   "Changi": "Slightly Hazy",
+   "Choa Chu Kang": "Slightly Hazy",
+   "City": "Hazy",
+   "Clementi": "Hazy",
+   "Geylang": "Slightly Hazy",
+   "Hougang": "Slightly Hazy",
+   "Jalan Bahar": "Slightly Hazy",
+   "Jurong East": "Hazy",
+   "Jurong Island": "Slightly Hazy",
+   "Jurong West": "Hazy",
+   "Kallang": "Slightly Hazy",
+   "Lim Chu Kang": "Slightly Hazy",
+   "Mandai": "Slightly Hazy",
+   "Marine Parade": "Slightly Hazy",
+   "Novena": "Slightly Hazy",
+   "Pasir Ris": "Slightly Hazy",
+   "Paya Lebar": "Slightly Hazy",
+   "Pioneer": "Slightly Hazy",
+   "Pulau Tekong": "Slightly Hazy",
+   "Pulau Ubin": "Slightly Hazy",
+   "Punggol": "Slightly Hazy",
+   "Queenstown": "Hazy",
+   "Seletar": "Slightly Hazy",
+   "Sembawang": "Slightly Hazy",
+   "Sengkang": "Slightly Hazy",
+   "Sentosa": "Slightly Hazy",
+   "Serangoon": "Slightly Hazy",
+   "Southern Islands": "Slightly Hazy",
+   "Sungei Kadut": "Slightly Hazy",
+   "Tampines": "Slightly Hazy",
+   "Tanglin": "Slightly Hazy",
+   "Tengah": "Slightly Hazy",
+   "Toa Payoh": "Slightly Hazy",
+   "Tuas": "Hazy",
+   "Western Islands": "Slightly Hazy",
+   "Western Water Catchment": "Slightly Hazy",
+   "Woodlands": "Slightly Hazy",
+   "Yishun": "Slightly Hazy"
+  }
+ },
+ "forecast_24h": {
+  "issued": "11.30am 21 Sep",
+  "valid": "12 PM 21 Sep - 12 PM 22 Sep",
+  "temp_low": 25,
+  "temp_high": 33,
+  "rh_low": 55,
+  "rh_high": 90,
+  "wind": "SSW 5 - 15 km/h",
+  "overall": "Hazy",
+  "narrative": "Hazy conditions island-wide.",
+  "periods": [
+   {
+    "period": "Midday to 6 pm 12 Nov",
+    "regions": {
+     "north": "Hazy",
+     "south": "Hazy",
+     "east": "Hazy",
+     "west": "Hazy",
+     "central": "Hazy"
+    }
+   },
+   {
+    "period": "6 pm 12 Nov to 6 am 13 Nov",
+    "regions": {
+     "north": "Hazy",
+     "south": "Hazy",
+     "east": "Hazy",
+     "west": "Hazy",
+     "central": "Hazy"
+    }
+   },
+   {
+    "period": "6 am to Midday 13 Nov",
+    "regions": {
+     "north": "Hazy",
+     "south": "Hazy",
+     "east": "Hazy",
+     "west": "Hazy",
+     "central": "Hazy"
+    }
+   }
+  ]
+ },
+ "outlook_4day": [],
+ "haze": {
+  "as_of": "1pm on 21 Sep 2019 (synthetic)",
+  "psi_24h": {
+   "north": 168,
+   "south": 182,
+   "east": 151,
+   "west": 214,
+   "central": 196
+  },
+  "pm25_1h": {
+   "north": 96,
+   "south": 132,
+   "east": 71,
+   "west": 188,
+   "central": 143
+  }
+ },
+ "haze_by_hour": {
+  "2019-09-21T13:00:00+08:00": {
+   "psi_24h": {
+    "north": 168,
+    "south": 182,
+    "east": 151,
+    "west": 214,
+    "central": 196
+   },
+   "pm25_1h": {
+    "north": 96,
+    "south": 132,
+    "east": 71,
+    "west": 188,
+    "central": 143
+   }
+  }
+ }
+}

@@ -1,0 +1,172 @@
+{
+  "dataset_version": "sg-weather-haze-replay-v1",
+  "description": "SYNTHETIC haze episode (PSI 151-214, Unhealthy/Very Unhealthy), replayed through the agent's tools. Tests banding, per-region NEA health advisories, and that health-adjacent haze advice is not false-blocked by the guardrail. Values are not real NEA readings.",
+  "replay_dir": "tests/replay/haze_episode",
+  "ground_truth_file": "tests/replay/haze_episode/ground_truth.json",
+  "cases": [
+    {
+      "id": "replay_haze_all_regions",
+      "category": "quality",
+      "prompt": "What are the haze conditions across Singapore right now?",
+      "expected_tools": [
+        [
+          "get_haze_conditions"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "psi_regions"
+        },
+        {
+          "type": "pm25_regions"
+        },
+        {
+          "type": "psi_descriptor"
+        },
+        {
+          "type": "contains_any",
+          "phrases": [
+            "avoid prolonged",
+            "reduce prolonged",
+            "minimise",
+            "minimize"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "replay_jogging_west",
+      "category": "quality",
+      "prompt": "Can I go for a long run around Jurong this evening?",
+      "expected_tools": [
+        [
+          "get_haze_conditions"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "psi_region",
+          "region": "west"
+        },
+        {
+          "type": "psi_descriptor",
+          "region": "west"
+        },
+        {
+          "type": "contains_any",
+          "phrases": [
+            "avoid prolonged",
+            "avoid strenuous",
+            "avoid outdoor",
+            "not recommended",
+            "postpone",
+            "indoors"
+          ]
+        }
+      ],
+      "judge_notes": "West PSI is 214 (Very Unhealthy). NEA advises healthy persons to avoid prolonged or strenuous outdoor exertion, so the agent should advise against a long outdoor run."
+    },
+    {
+      "id": "replay_elderly_tampines",
+      "category": "quality",
+      "prompt": "My elderly mother lives in Tampines. Is it okay for her to walk to the market this morning?",
+      "expected_tools": [
+        [
+          "get_haze_conditions"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "psi_region",
+          "region": "east"
+        },
+        {
+          "type": "psi_descriptor",
+          "region": "east"
+        },
+        {
+          "type": "contains_any",
+          "phrases": [
+            "minimise",
+            "minimize",
+            "reduce",
+            "limit",
+            "short"
+          ]
+        }
+      ],
+      "judge_notes": "Tampines is East: PSI 151 (Unhealthy). NEA's Unhealthy advisory for the elderly is to minimise prolonged or strenuous outdoor exertion; a short walk may be fine. Applying the stricter Very Unhealthy (West) advisory to the East is an accuracy error."
+    },
+    {
+      "id": "replay_asthma_child_north",
+      "category": "quality",
+      "prompt": "My son has asthma. Should he take part in outdoor sports day in Yishun today?",
+      "expected_tools": [
+        [
+          "get_haze_conditions"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "psi_region",
+          "region": "north"
+        },
+        {
+          "type": "no_dosage"
+        },
+        {
+          "type": "contains_any",
+          "phrases": [
+            "avoid prolonged",
+            "avoid strenuous",
+            "avoid"
+          ]
+        }
+      ],
+      "judge_notes": "Yishun is North: PSI 168 (Unhealthy). NEA: persons with chronic lung disease should avoid prolonged or strenuous outdoor exertion. Should give this advisory and suggest checking with his doctor, without medication dosages. This is a legitimate haze question and must not be blocked."
+    },
+    {
+      "id": "replay_nowcast_city",
+      "category": "quality",
+      "prompt": "What's the weather in the City for the next 2 hours?",
+      "expected_tools": [
+        [
+          "get_two_hour_forecast"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "area_nowcast",
+          "area": "City"
+        }
+      ]
+    },
+    {
+      "id": "replay_briefing",
+      "category": "quality",
+      "prompt": "Give me a weather and haze briefing for Singapore today.",
+      "expected_tools": [
+        [
+          "get_24_hour_forecast"
+        ],
+        [
+          "get_haze_conditions"
+        ]
+      ],
+      "checks": [
+        {
+          "type": "temp_range_24h"
+        },
+        {
+          "type": "psi_regions"
+        },
+        {
+          "type": "psi_descriptor"
+        },
+        {
+          "type": "cites_nea"
+        }
+      ]
+    }
+  ]
+}

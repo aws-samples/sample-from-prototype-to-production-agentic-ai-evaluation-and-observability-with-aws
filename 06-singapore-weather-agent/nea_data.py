@@ -57,7 +57,14 @@ def fetch(
 
     Cached for CACHE_TTL_SECONDS. Retries on rate limiting (HTTP 429 or API
     code 24) with backoff. Set DATA_GOV_SG_API_KEY for higher rate limits.
+
+    Replay mode: if NEA_REPLAY_DIR is set, the payload is read from
+    <dir>/<endpoint>.json instead (used to evaluate recorded/scenario conditions).
     """
+    if replay_dir := os.environ.get("NEA_REPLAY_DIR"):
+        with open(os.path.join(replay_dir, f"{endpoint}.json"), encoding="utf-8") as f:
+            return json.load(f)["data"]
+
     now = time.monotonic()
     with _cache_lock:
         hit = _cache.get(endpoint)
@@ -256,6 +263,7 @@ def parse_haze(psi_data: dict[str, Any], pm25_data: dict[str, Any], region: str 
             "psi_descriptor": psi_descriptor(psi) if psi is not None else None,
             "pm25_1h_ugm3": pm,
             "pm25_band": pm25_band(pm) if pm is not None else None,
+            "health_advisory": PSI_ADVISORY[psi_descriptor(psi)] if psi is not None else None,
         }
 
     all_psi = [v for v in psi24.values() if v is not None]
@@ -270,9 +278,10 @@ def parse_haze(psi_data: dict[str, Any], pm25_data: dict[str, Any], region: str 
             psi_descriptor(psi_min) if psi_descriptor(psi_min) == worst else f"{psi_descriptor(psi_min)} to {worst}"
         ),
         "regions": per_region,
-        "health_advisory": PSI_ADVISORY[worst],
+        "health_advisory_worst_region": PSI_ADVISORY[worst],
         "notes": (
-            "24-hr PSI is NEA's reference for health advisories; 1-hr PM2.5 bands are for "
+            "Each region has its own health advisory based on its 24-hr PSI; use the region's advisory "
+            "for location-specific questions. 24-hr PSI is NEA's reference for health advisories; 1-hr PM2.5 bands are for "
             "planning immediate activities. Hazy conditions are indicated by PSI > 100."
         ),
     }
