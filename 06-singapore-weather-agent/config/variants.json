@@ -1,0 +1,61 @@
+{
+  "description": "Agent variants compared by iterate.py. Each changes one thing from the previous one, so a metric change can be attributed.",
+  "variants": [
+    {
+      "name": "v1-local-baseline",
+      "prompt": "system_v1",
+      "tools": "local",
+      "guardrail": false,
+      "change": "Initial agent: local Strands tools, prompt v1, no guardrail"
+    },
+    {
+      "name": "v2-local-prompt-v2",
+      "prompt": "system_v2",
+      "tools": "local",
+      "guardrail": false,
+      "change": "Prompt v2: scope/safety rules, 'right now in <town>' recipe, no cross-forecast field copying"
+    },
+    {
+      "name": "v3-gateway",
+      "prompt": "system_v2",
+      "tools": "gateway",
+      "guardrail": false,
+      "change": "Tools served from AgentCore Gateway (MCP, SigV4) -> Lambda instead of in-process"
+    },
+    {
+      "name": "v4-gateway-guardrail",
+      "prompt": "system_v2",
+      "tools": "gateway",
+      "guardrail": true,
+      "change": "Bedrock Guardrail attached to the model (content filters, prompt attack, denied topics, PII)"
+    },
+    {
+      "name": "v4-local-guardrail",
+      "prompt": "system_v2",
+      "tools": "local",
+      "guardrail": true,
+      "change": "Same as v4 but with local tools; used for replay datasets (the Gateway Lambda only reads live NEA data)"
+    },
+    {
+      "name": "v5-local-prompt-v3",
+      "prompt": "system_v3",
+      "tools": "local",
+      "guardrail": false,
+      "change": "Prompt v3: don't volunteer haze causes (the replay judge flagged them as unsupported)"
+    },
+    {
+      "name": "v5-local-guardrail",
+      "prompt": "system_v3",
+      "tools": "local",
+      "guardrail": true,
+      "change": "Prompt v3 + guardrail v3 (narrowed MedicalTreatment topic), local tools for replay datasets"
+    },
+    {
+      "name": "v5-gateway-guardrail",
+      "prompt": "system_v3",
+      "tools": "gateway",
+      "guardrail": true,
+      "change": "Prompt v3 + guardrail v3 (narrowed MedicalTreatment topic) via Gateway"
+    }
+  ]
+}
