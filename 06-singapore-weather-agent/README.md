@@ -7,14 +7,24 @@ Guardrail** protects it. It's evaluated against what NEA publishes on
 [nea.gov.sg](https://www.nea.gov.sg/weather) and [haze.gov.sg](https://www.haze.gov.sg/),
 and improved through logged **iterations**.
 
-```
-user ─► Strands Agent ─► Bedrock (Claude Sonnet) ◄── Bedrock Guardrail (input + output)
-             │
-             └─ MCP over HTTPS, SigV4 ─► AgentCore Gateway (AWS_IAM auth)
-                                           └─► Lambda target "WeatherTools" ─► data.gov.sg (NEA feeds)
+## Architecture
 
-evaluate.py ─► agent answers  vs  nea.gov.sg + haze.gov.sg ground truth  (+ LLM judge)
-```
+![Runtime architecture](docs/architecture_runtime.png)
+
+A question comes in from the CLI or the browser page and reaches the Strands agent (1).
+The Bedrock Guardrail screens the input (2), and Claude decides which tools to call (3).
+In Gateway mode, the tools are called over SigV4-signed MCP through the AgentCore Gateway,
+which invokes the Lambda (4). The Lambda fetches NEA's feeds and computes the bands and
+per-region advisories in code (5). The guardrail screens the answer on its way out (6).
+
+![Evaluation and iteration loop](docs/architecture_evaluation.png)
+
+Each prompt or guardrail version is a variant. `iterate.py` and `evaluate.py` run every
+variant against both datasets and score the answers against ground truth fetched
+separately from nea.gov.sg and haze.gov.sg. The findings then drive the next version.
+
+Both diagrams are drawn by `docs/make_diagrams.py` (PNG and SVG). To regenerate them, run
+`../.venv/bin/python docs/make_diagrams.py`.
 
 ## Quick start
 
@@ -203,3 +213,4 @@ what was changed in response.
 - `scripts/probe_guardrail.py`: guardrail regression probe (ApplyGuardrail, DRAFT or a published version)
 - `scripts/build_haze_scenario.py`, `tests/replay/haze_episode/`: synthetic haze-day replay data
 - `iterate.py`, `iterations/`, `ITERATIONS.md`: iteration runner, log and write-up
+- `docs/`: architecture diagrams (PNG and SVG) and the script that draws them
