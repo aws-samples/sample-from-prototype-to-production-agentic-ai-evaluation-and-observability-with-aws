@@ -44,8 +44,8 @@ cd 06-singapore-weather-agent
 ../.venv/bin/python web_app.py                               # http://127.0.0.1:8501
 ```
 
-In a browser-based editor, open `https://<your-editor-host>/proxy/8501/`. The trailing
-slash matters. The page has checkboxes for the Gateway and the Guardrail, and each answer
+In a browser-based editor, open `https://<your-editor-host>/ports/8501/` (some editors use
+`/proxy/8501/`). The page has checkboxes for the Gateway and the Guardrail, and each answer
 shows the tools used, whether the guardrail intervened, and the response time. It listens
 only on localhost; it isn't a public site.
 

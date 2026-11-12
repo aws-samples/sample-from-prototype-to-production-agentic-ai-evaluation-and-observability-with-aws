@@ -5,8 +5,8 @@ Browser chat UI for the Singapore Weather Agent (standard library only, no extra
     python web_app.py              # http://127.0.0.1:8501
     python web_app.py --port 8600
 
-In a browser-based VS Code / Code Editor, open the forwarded port, usually
-https://<your-editor-host>/proxy/8501/ (the trailing slash matters).
+In a browser-based VS Code / Code Editor, open the forwarded port, e.g.
+https://<your-editor-host>/ports/8501/  (or /proxy/8501/, depending on the editor)
 
 Each browser tab is a separate conversation. Toggles choose local tools vs the AgentCore
 Gateway and whether the Bedrock Guardrail is attached (both need `python infra.py deploy`).
@@ -143,17 +143,23 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        path = self.path.split("?", 1)[0].rstrip("/")
-        if path in ("", "/index.html") or path.endswith("/index.html"):
-            on = infra_available()
-            page = (PAGE.replace("__GW__", "checked" if on else "")
-                    .replace("__GR__", "checked" if on else "")
-                    .replace("__NOTE__", "" if on else "<br><i>Gateway/Guardrail not deployed, so local tools are used.</i>"))
-            self._send(200, page.encode(), "text/html; charset=utf-8")
-        elif path.endswith("/healthz") or path == "/healthz":
+        # Works behind path-prefix proxies (e.g. /ports/8501/ or /proxy/8501/), with or without prefix stripping.
+        path = self.path.split("?", 1)[0]
+        if path.endswith("healthz"):
             self._send(200, b'{"ok": true}', "application/json")
-        else:
-            self._send(404, b"not found", "text/plain")
+            return
+        if not path.endswith("/") and not path.endswith(".html"):
+            # Relative redirect so the page's relative 'api/chat' URL resolves under the same prefix.
+            self.send_response(301)
+            self.send_header("Location", path.rsplit("/", 1)[-1] + "/")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        on = infra_available()
+        page = (PAGE.replace("__GW__", "checked" if on else "")
+                .replace("__GR__", "checked" if on else "")
+                .replace("__NOTE__", "" if on else "<br><i>Gateway/Guardrail not deployed, so local tools are used.</i>"))
+        self._send(200, page.encode(), "text/html; charset=utf-8")
 
     def do_POST(self) -> None:
         if not self.path.split("?", 1)[0].endswith("api/chat"):
@@ -175,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps({"error": f"{type(e).__name__}: {e}"}).encode(), "application/json")
 
     def log_message(self, fmt: str, *args) -> None:  # quieter logs
-        if "api/chat" in (args[0] if args else ""):
+        if args and "api/chat" in str(args[0]):
             print(f"{self.address_string()} {args[0]} -> {args[1]}")
 
 
@@ -186,7 +192,7 @@ def main() -> None:
     args = ap.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Singapore Weather Agent UI on http://{args.host}:{args.port}/")
-    print(f"In a browser-based editor, open: https://<your-editor-host>/proxy/{args.port}/")
+    print(f"In a browser-based editor, open: https://<your-editor-host>/ports/{args.port}/")
     server.serve_forever()
 
 
