@@ -17,11 +17,20 @@ In Gateway mode, the tools are called over SigV4-signed MCP through the AgentCor
 which invokes the Lambda (4). The Lambda fetches NEA's feeds and computes the bands and
 per-region advisories in code (5). The guardrail screens the answer on its way out (6).
 
+For "near me" questions in the browser UI, the location-consent guardrail adds steps L1–L3.
+The agent calls `get_current_location`, which returns `consent_required` until you click
+**Allow once** on the card the page shows (L1). The browser then sends its position, which
+the server accepts only for that pending request and uses once (L2). The tool gives the
+agent only the nearest NEA town and PSI region, never the coordinates (L3).
+
 ![Evaluation and iteration loop](docs/architecture_evaluation.png)
 
 Each prompt or guardrail version is a variant. `iterate.py` and `evaluate.py` run every
 variant against both datasets and score the answers against ground truth fetched
 separately from nea.gov.sg and haze.gov.sg. The findings then drive the next version.
+The offline unit tests (`tests/`) cover the parsers, NEA bands, retry logic, evaluator
+checks and the location-consent gate, using recorded NEA fixtures and no AWS calls. The
+evals run without the location tool, so their results aren't affected by it.
 
 Both diagrams are drawn by `docs/make_diagrams.py` (PNG and SVG). To regenerate them, run
 `../.venv/bin/python docs/make_diagrams.py`.

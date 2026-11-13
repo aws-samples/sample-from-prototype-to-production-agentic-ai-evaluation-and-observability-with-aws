@@ -39,6 +39,7 @@ C_LAMBDA = "#e07b00"
 C_NEA = "#3f8a46"
 C_GREY = "#6b7280"
 C_EVAL = "#b4326f"
+C_LOC = "#0e7c86"
 
 
 def new_canvas(w: float, h: float, title: str, subtitle: str):
@@ -107,8 +108,10 @@ def polyline(ax, pts, label="", label_at=0, color=ARROW, dashed=False, label_off
 
 
 def step(ax, x, y, n, color=C_AGENT):
-    ax.add_patch(plt.Circle((x, y), 0.2, fc=color, ec="white", lw=1.5, zorder=6))
-    ax.text(x, y, str(n), ha="center", va="center", fontsize=10, fontweight="bold", color="white", zorder=7)
+    r = 0.2 if len(str(n)) == 1 else 0.26
+    ax.add_patch(plt.Circle((x, y), r, fc=color, ec="white", lw=1.5, zorder=6))
+    ax.text(x, y, str(n), ha="center", va="center", fontsize=10 if r == 0.2 else 9, fontweight="bold", color="white",
+            zorder=7)
 
 
 def save(fig, name):
@@ -122,59 +125,75 @@ def save(fig, name):
 # 1. Runtime architecture
 # --------------------------------------------------------------------------- #
 def runtime():
-    W, H = 20, 12
+    W, H = 22.7, 12.4
+    D = 2.7  # everything right of the (wider) client panel is shifted by D
     fig, ax = new_canvas(W, H, "Singapore Weather Agent: runtime architecture",
-                         "How a question is answered (AgentCore Gateway + Bedrock Guardrail mode, with local-tools mode)")
+                         "How a question is answered (AgentCore Gateway + Bedrock Guardrail mode, with local-tools mode)"
+                         " and how the agent gets your location only after you confirm")
 
-    group(ax, 0.3, 1.9, 5.7, 10.6, "Your machine / Code Editor", G_CLIENT)
-    group(ax, 6.3, 1.9, 15.6, 10.6, "AWS account (us-east-1)", G_AWS)
-    group(ax, 6.6, 7.3, 15.3, 10.0, "Amazon Bedrock", G_BEDROCK, fontsize=12)
-    group(ax, 6.6, 2.3, 10.9, 6.9, "Amazon Bedrock AgentCore", G_AGENTCORE, fontsize=12)
-    group(ax, 16.2, 0.95, 19.7, 7.0, "NEA open data", G_NEA)
+    group(ax, 0.3, 1.9, 8.4, 10.6, "Your machine / Code Editor / browser", G_CLIENT)
+    group(ax, 6.3 + D, 1.9, 15.6 + D, 10.6, "AWS account (us-east-1)", G_AWS)
+    group(ax, 6.6 + D, 7.3, 15.3 + D, 10.0, "Amazon Bedrock", G_BEDROCK, fontsize=12)
+    group(ax, 6.6 + D, 2.3, 10.9 + D, 6.9, "Amazon Bedrock AgentCore", G_AGENTCORE, fontsize=12)
+    group(ax, 16.2 + D, 0.95, 19.7 + D, 7.0, "NEA open data", G_NEA)
 
-    user = node(ax, 3.0, 9.65, 2.4, 0.6, "User", color=C_CLIENT)
+    user = node(ax, 4.15, 9.65, 2.4, 0.6, "User", color=C_CLIENT)
     cli = node(ax, 1.75, 8.25, 2.3, 1.0, "weather_agent.py", "CLI", color=C_CLIENT)
-    web = node(ax, 4.25, 8.25, 2.5, 1.0, "web_app.py", "Browser UI :8501", color=C_CLIENT)
-    agent = node(ax, 3.0, 6.05, 4.6, 1.55, "Strands Agent", "open_agent(variant)\nsystem prompt v3 (config/prompts)",
-                 color=C_AGENT, fill="#f2f7fd")
-    local = node(ax, 1.75, 4.05, 2.5, 1.0, "Local tools", "@tool, in-process", color=C_CLIENT)
-    ndl = node(ax, 3.0, 2.65, 5.1, 1.15, "nea_data.py", "parsers · NEA PSI/PM2.5 bands\n60 s cache · rate-limit retry",
-               color=C_CLIENT, body_size=9.5)
+    web = node(ax, 5.35, 8.25, 3.6, 1.0, "web_app.py", "Browser UI :8501 · Allow-once card", color=C_CLIENT,
+               body_size=9.5)
+    agent = node(ax, 3.0, 6.05, 4.6, 1.55, "Strands Agent",
+                 "open_agent(variant, extra_tools)\nsystem prompt v3 + location rules", color=C_AGENT, fill="#f2f7fd")
+    local = node(ax, 1.75, 3.95, 2.5, 1.0, "Local tools", "@tool, in-process", color=C_CLIENT)
+    loc = node(ax, 5.75, 3.95, 4.1, 1.3, "Location-consent guardrail",
+               "location_guardrail.py · get_current_location\nasks you every time · 1 approval = 1 lookup\n"
+               "model sees nearest town + region only", color=C_LOC, fill="#eef9f9", title_size=11.5, body_size=9)
+    ndl = node(ax, 4.15, 2.55, 7.4, 1.05, "nea_data.py",
+               "parsers · NEA PSI/PM2.5 bands · 60 s cache · rate-limit retry\nNEA area / region coordinates for the location lookup",
+               color=C_CLIENT, body_size=9.2)
 
-    guard = node(ax, 8.95, 8.55, 4.1, 2.05, "Bedrock Guardrail v3",
+    guard = node(ax, 8.95 + D, 8.55, 4.1, 2.05, "Bedrock Guardrail v3",
                  "content + prompt-attack filters\ndenied topics: MedicalTreatment,\nPoliticalBlame · PII masking\n(NRIC/FIN, phone, email)",
                  color=C_GUARD, fill="#fff3f2", body_size=9.5)
-    llm = node(ax, 13.55, 8.55, 3.2, 1.35, "Claude Sonnet", "global.anthropic.claude-sonnet-5", color=C_LLM,
+    llm = node(ax, 13.55 + D, 8.55, 3.2, 1.35, "Claude Sonnet", "global.anthropic.claude-sonnet-5", color=C_LLM,
                fill="#f7f3ff", body_size=9.5)
 
-    gw = node(ax, 8.75, 5.55, 3.7, 1.35, "AgentCore Gateway", "sg-weather-gateway\nMCP · AWS_IAM authorizer (SigV4)",
+    gw = node(ax, 8.75 + D, 5.55, 3.7, 1.35, "AgentCore Gateway", "sg-weather-gateway\nMCP · AWS_IAM authorizer (SigV4)",
               color=C_GW, fill="#f0faf5", body_size=9.5)
-    tgt = node(ax, 8.75, 3.35, 3.7, 1.15, "Gateway target: WeatherTools", "4 MCP tool schemas", color=C_GW,
+    tgt = node(ax, 8.75 + D, 3.35, 3.7, 1.15, "Gateway target: WeatherTools", "4 MCP tool schemas", color=C_GW,
                fill="#f0faf5", title_size=11.5)
-    lam = node(ax, 13.25, 4.35, 3.6, 1.55, "AWS Lambda", "sg-weather-tools · Python 3.12\nweather_tools_lambda.py + nea_data.py",
+    lam = node(ax, 13.25 + D, 4.35, 3.6, 1.55, "AWS Lambda", "sg-weather-tools · Python 3.12\nweather_tools_lambda.py + nea_data.py",
                color=C_LAMBDA, fill="#fff6ea", body_size=9.5)
-    iam = node(ax, 13.25, 6.25, 3.6, 0.85, "IAM roles", "Gateway → lambda:InvokeFunction", color=C_GREY, body_size=9)
-    cw = node(ax, 13.25, 2.65, 3.6, 0.65, "CloudWatch Logs", color=C_GREY, title_size=11)
+    iam = node(ax, 13.25 + D, 6.25, 3.6, 0.85, "IAM roles", "Gateway → lambda:InvokeFunction", color=C_GREY, body_size=9)
+    cw = node(ax, 13.25 + D, 2.65, 3.6, 0.65, "CloudWatch Logs", color=C_GREY, title_size=11)
 
-    dg = node(ax, 17.95, 4.1, 3.1, 3.2, "data.gov.sg",
+    dg = node(ax, 17.95 + D, 4.1, 3.1, 3.2, "data.gov.sg",
               "v2 real-time API\n\ntwo-hr-forecast\ntwenty-four-hr-forecast\nfour-day-outlook\npsi · pm25",
               color=C_NEA, fill="#f3faf3", body_size=10)
 
     # user entry
     arrow(ax, side(user, "b", -0.6), side(cli, "t"))
-    arrow(ax, side(user, "b", 0.6), side(web, "t"))
+    arrow(ax, side(user, "b", 0.6), side(web, "t", -0.4))
     arrow(ax, side(cli, "b"), side(agent, "t", -1.25))
-    arrow(ax, side(web, "b"), side(agent, "t", 1.25))
+    arrow(ax, side(web, "b", -1.1), side(agent, "t", 1.25))
+
+    # location consent path (app-side guardrail)
+    arrow(ax, side(web, "b", 1.2), side(loc, "t", 0.8), color=C_LOC)
+    ax.text(7.5, 6.35, "api/location\nAllow once → lat/lon", fontsize=9.5, color=C_LOC, ha="center", va="center",
+            zorder=5, bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="none", alpha=0.95), linespacing=1.25)
+    arrow(ax, side(agent, "b", 1.25), side(loc, "t", -1.5), both=True, color=C_LOC)
+    ax.text(2.95, 4.94, "tool call ⇄\nnearest town", fontsize=9.5, color=C_LOC, ha="center", va="center", zorder=5,
+            bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="none", alpha=0.95), linespacing=1.25)
+    arrow(ax, side(loc, "b"), side(ndl, "t", 1.6), color=C_LOC)
 
     # model + guardrail
     arrow(ax, side(agent, "r", 0.45), side(guard, "l", -0.35), both=True, color=C_GUARD)
-    ax.text(6.0, 7.2, "Converse API\nin/out screened", fontsize=9.5, color=C_GUARD, ha="center", va="center", zorder=5,
+    ax.text(7.4, 7.33, "Converse API\nin/out screened", fontsize=9.5, color=C_GUARD, ha="center", va="center", zorder=5,
             bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="none", alpha=0.95))
     arrow(ax, side(guard, "r"), side(llm, "l"), both=True, color=C_LLM)
 
     # gateway path
     arrow(ax, side(agent, "r", -0.3), side(gw, "l", 0.15), "gateway mode\nMCP / HTTPS · SigV4",
-          color=C_GW, label_pos=0.45, label_offset=(0, -0.42))
+          color=C_GW, label_pos=0.7, label_offset=(0, -0.42))
     arrow(ax, side(gw, "b"), side(tgt, "t"), color=C_GW)
     arrow(ax, side(tgt, "r"), side(lam, "l", -0.35), "invoke\n(IAM role)", color=C_LAMBDA, label_pos=0.5,
           label_offset=(0.05, 0.42))
@@ -183,25 +202,32 @@ def runtime():
     arrow(ax, side(iam, "b"), side(lam, "t"), dashed=True, color=C_GREY)
 
     # local path
-    arrow(ax, side(agent, "b", -1.25), side(local, "t"), "local mode", color=C_CLIENT, label_offset=(0.65, 0.0))
-    arrow(ax, side(local, "b"), side(ndl, "t", -1.25), color=C_CLIENT)
-    polyline(ax, [side(ndl, "b"), (3.0, 1.15), (17.95, 1.15), side(dg, "b")], "HTTPS (local mode)", label_at=1,
+    arrow(ax, side(agent, "b", -1.25), side(local, "t"), "local mode", color=C_CLIENT, label_offset=(-0.85, 0.0))
+    arrow(ax, side(local, "b"), side(ndl, "t", -2.4), color=C_CLIENT)
+    polyline(ax, [side(ndl, "b"), (4.15, 1.15), (17.95 + D, 1.15), side(dg, "b")], "HTTPS (local mode)", label_at=1,
              color=C_NEA, label_offset=(0, 0.2))
 
     # numbered request flow
     step(ax, 5.15, 7.05, 1)
-    step(ax, 6.55, 7.85, 2, C_GUARD)
-    step(ax, 11.47, 9.05, 3, C_LLM)
-    step(ax, 6.2, 5.7, 4, C_GW)
-    step(ax, 15.0, 5.35, 5, C_LAMBDA)
-    step(ax, 11.47, 8.05, 6, C_GUARD)
+    step(ax, 6.55 + D, 7.85, 2, C_GUARD)
+    step(ax, 11.47 + D, 9.05, 3, C_LLM)
+    step(ax, 6.2 + D, 5.7, 4, C_GW)
+    step(ax, 15.0 + D, 5.35, 5, C_LAMBDA)
+    step(ax, 11.47 + D, 8.05, 6, C_GUARD)
+    # location consent flow
+    step(ax, 4.62, 4.94, "L1", C_LOC)
+    step(ax, 6.2, 6.3, "L2", C_LOC)
+    step(ax, 3.88, 4.94, "L3", C_LOC)
 
     legend = ("1  Question from the CLI or the browser reaches the Strands agent      "
               "2  Guardrail screens input (injection, dosing, politics; masks PII)      "
               "3  Claude picks tools\n"
               "4  SigV4-signed MCP call to the AgentCore Gateway → Lambda      "
               "5  Lambda fetches NEA feeds; bands and per-region advisory computed in code      "
-              "6  Answer screened on output, returned with an NEA source line")
+              "6  Answer screened on output, returned with an NEA source line\n"
+              "L1  For \"near me\" questions the agent calls get_current_location; it returns consent_required and the page shows an Allow / Don't allow card      "
+              "L2  On Allow once the browser sends its position;\n      the server accepts it only for a pending request, uses it once, then discards it      "
+              "L3  The tool returns only the nearest NEA town and PSI region, never coordinates; Don't allow → the agent offers a town name instead")
     ax.text(0.35, 0.05, legend, fontsize=10, color=MUTED, va="bottom", linespacing=1.6)
     save(fig, "architecture_runtime")
 
@@ -220,13 +246,18 @@ def evaluation():
     cfg_p = node(ax, 4.6, 9.0, 2.7, 0.95, "prompts/", "system_v1 → v2 → v3", color=C_GREY, body_size=9.5)
     cfg_v = node(ax, 7.45, 9.0, 2.7, 0.95, "variants.json", "v1 … v5 ladder", color=C_GREY, body_size=9.5)
     infra = node(ax, 11.5, 9.0, 3.2, 0.95, "infra.py", "deploy · smoke · status · destroy", color=C_LAMBDA, body_size=9.5)
+    tests = node(ax, 17.05, 9.15, 5.4, 1.2, "tests/ (pytest, offline, no AWS)",
+                 "38 unit tests on recorded NEA fixtures: parsers · bands · retry\nevaluator checks · location-consent gate",
+                 color=C_LOC, fill="#eef9f9", title_size=11.5, body_size=9.2)
+
 
     # Row 2: runners, agent, ground truth
     it = node(ax, 1.75, 6.6, 2.9, 1.0, "iterate.py", "runs variants, compares", color=C_EVAL, body_size=9.5)
     ev = node(ax, 5.3, 6.6, 3.3, 1.2, "evaluate.py", "runs every case per variant\nscores + saves results",
               color=C_EVAL, body_size=9.5)
-    agentn = node(ax, 11.5, 6.6, 3.9, 1.25, "Weather Agent", "runtime architecture\n(local or Gateway + Guardrail)",
-                  color=C_AGENT, fill="#f2f7fd", body_size=9.5)
+    agentn = node(ax, 11.5, 6.6, 3.9, 1.35, "Weather Agent",
+                  "runtime architecture\n(local or Gateway + Guardrail)\nevals run without the location tool",
+                  color=C_AGENT, fill="#f2f7fd", body_size=9.2)
     group(ax, 14.1, 4.95, 20.0, 8.0, "Independent ground truth", G_NEA, fontsize=12)
     ngt = node(ax, 17.05, 6.95, 3.8, 0.9, "nea_ground_truth.py", "before/after snapshots", color=C_NEA, body_size=9.5)
     neaw = node(ax, 15.65, 5.6, 2.5, 0.95, "nea.gov.sg", "2 h · 24 h · 4-day", color=C_NEA, title_size=11, body_size=9)
