@@ -10,6 +10,9 @@ https://<your-editor-host>/ports/8501/  (or /proxy/8501/, depending on the edito
 
 Each browser tab is a separate conversation. Toggles choose local tools vs the AgentCore
 Gateway and whether the Bedrock Guardrail is attached (both need `python infra.py deploy`).
+
+Location guardrail: the agent can use your current location, but every lookup needs your
+confirmation in the page first (see location_guardrail.py).
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from location_guardrail import LOCATION_INSTRUCTIONS, LocationConsent, make_location_tool
 from weather_agent import DEFAULT_PROMPT, base_tool_name, open_agent
 
 HERE = Path(__file__).resolve().parent
@@ -76,6 +80,9 @@ PAGE = r"""<!doctype html>
  .chips{max-width:900px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap}
  .chip{background:var(--chip);color:var(--ink);border:1px solid var(--line);padding:5px 12px;font-size:13px;font-weight:500;border-radius:999px}
  .chip:hover{border-color:#25b0c9;filter:none}
+ .consent{margin-top:10px;padding:12px;border:1px solid #f6c9c4;background:var(--user);border-radius:12px}
+ .consent b{display:block;margin-bottom:4px} .consent small{color:var(--muted);display:block;margin:4px 0 8px}
+ .consent button{padding:7px 14px;margin-right:6px} .consent .no{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
 </style></head><body>
 <header>
  <div class="sun"></div>
@@ -110,7 +117,8 @@ PAGE = r"""<!doctype html>
  <button type="button" class="chip" data-q="Will it rain in Tampines in the next 2 hours?">☔ Will it rain in Tampines in the next 2 hours?</button>
  <button type="button" class="chip" data-q="4-day outlook">📅 4-day outlook</button>
  <button type="button" class="chip" data-q="Is it okay to jog in Jurong this evening?">🏃 Is it okay to jog in Jurong this evening?</button>
- <button type="button" class="chip" data-q="What are the PSI and PM2.5 readings right now?">😷 PSI &amp; PM2.5 right now</button></div>
+ <button type="button" class="chip" data-q="What are the PSI and PM2.5 readings right now?">😷 PSI &amp; PM2.5 right now</button>
+ <button type="button" class="chip" data-q="What's the weather like near me right now?">📍 Weather near me</button></div>
  <div class="row"><textarea id="q" placeholder="Ask about Singapore weather or haze… 🌤️"></textarea><button id="send">Send ➤</button></div></form>
 <script>
 let sid = crypto.randomUUID ? crypto.randomUUID() : String(Math.random());
@@ -118,7 +126,7 @@ const log = document.getElementById('log'), q = document.getElementById('q'), se
 const WELCOME = `<div class="welcome"><h2>Selamat datang! 👋</h2>
  Ask me about Singapore weather forecasts, the 2-hour nowcast for your town, the 4-day outlook, or haze.
  <div class="tiles"><div class="tile"><b>⛈️</b>2-hour nowcast by town</div><div class="tile"><b>📅</b>24-hour &amp; 4-day outlook</div>
- <div class="tile"><b>😷</b>PSI &amp; PM2.5 by region</div><div class="tile"><b>🌡️</b>Temperature &amp; humidity</div></div>__NOTE__</div>`;
+ <div class="tile"><b>😷</b>PSI &amp; PM2.5 by region</div><div class="tile"><b>📍</b>Near you (asks first)</div></div>__NOTE__</div>`;
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>').replace(/`(.+?)`/g,'<code>$1</code>');
 // Weather icons for short table cells that name an NEA forecast; first match wins.
@@ -165,9 +173,31 @@ async function ask(text){
     else {
       pending.innerHTML = md(j.answer) + '<div class="meta">' + (j.guardrail_intervened ? '<span class="blocked">🛡️ Guardrail intervened · </span>' : '') +
         (j.tools.length ? '🔧 ' + j.tools.join(', ') : '💬 No tools called') + ' · ' + (j.mode.startsWith('Gateway') ? '🔌 ' : '💻 ') + j.mode + ' · ⏱️ ' + j.latency_s + 's</div>';
+      if (j.location_request) consentCard(pending);
     }
   } catch (e) { pending.innerHTML = '<span class="blocked">⚠️ Request failed: ' + esc(String(e)) + '</span>'; }
   send.disabled = false; q.focus();
+}
+// Location guardrail: nothing leaves the browser until the user clicks Allow on this card.
+function consentCard(bubble){
+  const c = document.createElement('div'); c.className = 'consent';
+  c.innerHTML = '<b>📍 Allow the agent to use your current location?</b><small>Used once for this answer, matched to the nearest NEA town. ' +
+    'Your coordinates are not shown to the AI model or stored.</small><button class="yes">Allow once</button><button class="no">Don\'t allow</button>';
+  bubble.appendChild(c);
+  const done = msg => { c.innerHTML = '<small>' + msg + '</small>'; };
+  const decide = async body => (await fetch('api/location', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: sid, ...body})})).json();
+  c.querySelector('.no').onclick = async () => { done('🚫 Location not shared.'); await decide({decision:'deny'}); ask("No, don't use my location."); };
+  c.querySelector('.yes').onclick = () => {
+    if (!navigator.geolocation) { done('⚠️ This browser can\'t share location.'); decide({decision:'deny'}).then(() => ask('My browser could not share my location.')); return; }
+    done('📡 Getting your location…');
+    navigator.geolocation.getCurrentPosition(async p => {
+      const r = await decide({decision:'allow', latitude: p.coords.latitude, longitude: p.coords.longitude});
+      if (!r.ok) { done('⚠️ ' + esc(r.error || 'This request has expired.')); return; }
+      done('✅ Location shared once.'); ask('Yes, use my current location.');
+    }, async err => { done('⚠️ Location unavailable: ' + esc(err.message)); await decide({decision:'deny'}); ask('My browser could not share my location.'); },
+    {enableHighAccuracy:false, timeout:15000, maximumAge:60000});
+  };
 }
 document.getElementById('f').onsubmit = e => { e.preventDefault(); ask(q.value); };
 q.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(q.value); } };
@@ -188,12 +218,15 @@ def chat(session_id: str, message: str, gateway: bool, guardrail: bool) -> dict:
     with SESSIONS_LOCK:
         if len(SESSIONS) > MAX_SESSIONS:
             SESSIONS.pop(next(iter(SESSIONS)))
-        sess = SESSIONS.setdefault(session_id, {"messages": [], "lock": threading.Lock(), "mode": mode})
+        sess = get_session(session_id, mode)
         if sess["mode"] != mode:  # switching modes starts a fresh conversation (tool names differ)
             sess.update(messages=[], mode=mode)
+            sess["consent"].reset()
     with sess["lock"]:
         variant = {"prompt": DEFAULT_PROMPT, "tools": "gateway" if gateway else "local", "guardrail": guardrail}
-        with open_agent(variant) as agent:
+        consent: LocationConsent = sess["consent"]
+        with open_agent(variant, extra_tools=[make_location_tool(consent)],
+                        extra_instructions=LOCATION_INSTRUCTIONS) as agent:
             agent.messages = sess["messages"]
             t0 = time.time()
             result = agent(message)
@@ -205,7 +238,27 @@ def chat(session_id: str, message: str, gateway: bool, guardrail: bool) -> dict:
             "guardrail_intervened": result.stop_reason == "guardrail_intervened",
             "latency_s": latency,
             "mode": mode,
+            "location_request": consent.pending,  # the UI shows the Allow / Don't allow prompt
         }
+
+
+def get_session(session_id: str, mode: str = "local tools") -> dict:
+    """Caller holds SESSIONS_LOCK."""
+    return SESSIONS.setdefault(session_id, {"messages": [], "lock": threading.Lock(), "mode": mode,
+                                            "consent": LocationConsent()})
+
+
+def location_decision(session_id: str, req: dict) -> dict:
+    """The user's answer to a pending location request. Rejected unless the agent asked."""
+    with SESSIONS_LOCK:
+        sess = SESSIONS.get(session_id)
+    if sess is None or not sess["consent"].pending:
+        return {"ok": False, "error": "No location request is waiting for confirmation."}
+    if req.get("decision") == "allow":
+        ok = sess["consent"].grant(req.get("latitude"), req.get("longitude"))
+    else:
+        ok = sess["consent"].deny()
+    return {"ok": ok}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -237,7 +290,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, page.encode(), "text/html; charset=utf-8")
 
     def do_POST(self) -> None:
-        if not self.path.split("?", 1)[0].endswith("api/chat"):
+        path = self.path.split("?", 1)[0]
+        if not (path.endswith("api/chat") or path.endswith("api/location")):
             self._send(404, b"not found", "text/plain")
             return
         try:
@@ -245,6 +299,10 @@ class Handler(BaseHTTPRequestHandler):
             if length > 20_000:
                 raise ValueError("message too long")
             req = json.loads(self.rfile.read(length) or b"{}")
+            if path.endswith("api/location"):
+                out = location_decision(str(req.get("session_id", "")), req)
+                self._send(200, json.dumps(out).encode(), "application/json")
+                return
             message = str(req.get("message", "")).strip()[:2000]
             if not message:
                 raise ValueError("empty message")
@@ -256,7 +314,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps({"error": f"{type(e).__name__}: {e}"}).encode(), "application/json")
 
     def log_message(self, fmt: str, *args) -> None:  # quieter logs
-        if args and "api/chat" in str(args[0]):
+        if args and "api/" in str(args[0]):
             print(f"{self.address_string()} {args[0]} -> {args[1]}")
 
 

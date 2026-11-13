@@ -143,22 +143,29 @@ def build_model(guardrail: bool, *, model_id: str = MODEL_ID, max_tokens: int = 
 
 
 @contextmanager
-def open_agent(variant: dict[str, Any] | None = None, *, callback_handler=None) -> Iterator[Agent]:
-    """Yield an agent configured by `variant` ({prompt, tools: local|gateway, guardrail})."""
+def open_agent(variant: dict[str, Any] | None = None, *, callback_handler=None,
+               extra_tools: list | None = None, extra_instructions: str = "") -> Iterator[Agent]:
+    """Yield an agent configured by `variant` ({prompt, tools: local|gateway, guardrail}).
+
+    `extra_tools` / `extra_instructions` add app-side capabilities (e.g. the consent-gated
+    location tool in web_app.py) without changing the versioned prompts used by the evals.
+    """
     v = {**DEFAULT_VARIANT, **(variant or {})}
+    extra = list(extra_tools or [])
+    prompt = load_prompt(v["prompt"])
     common = dict(
         name="SingaporeWeatherAgent",
         model=build_model(v["guardrail"]),
-        system_prompt=load_prompt(v["prompt"]),
+        system_prompt=f"{prompt}\n\n{extra_instructions.strip()}" if extra_instructions.strip() else prompt,
         callback_handler=callback_handler,
     )
     if v["tools"] == "gateway":
         state = load_infra_state()
         client = gateway_mcp_client(state["gateway_url"], state["region"])
         with client:
-            yield Agent(tools=client.list_tools_sync(), **common)
+            yield Agent(tools=client.list_tools_sync() + extra, **common)
     else:
-        yield Agent(tools=LOCAL_TOOLS, **common)
+        yield Agent(tools=LOCAL_TOOLS + extra, **common)
 
 
 def main() -> None:

@@ -237,3 +237,61 @@ def test_haze_advisory_is_per_region(monkeypatch):
     assert east["regions"]["east"]["health_advisory"] == nea_data.PSI_ADVISORY["Unhealthy"]
     assert east["health_advisory_worst_region"] == nea_data.PSI_ADVISORY["Very Unhealthy"]  # west 214
     assert nea_data.get_two_hour_forecast("City")["forecast"] == "Hazy"
+
+
+# ---- location-consent guardrail -----------------------------------------------
+from location_guardrail import LocationConsent, resolve_location  # noqa: E402
+
+TAMPINES = (1.3496, 103.9568)
+
+
+@pytest.fixture
+def replay(monkeypatch):
+    monkeypatch.setenv("NEA_REPLAY_DIR", str(FIX))
+
+
+def test_location_needs_consent_before_any_lookup(replay):
+    c = LocationConsent()
+    assert c.grant(*TAMPINES) is False  # unsolicited coordinates are rejected
+    out = c.lookup()
+    assert out["status"] == "consent_required" and c.pending
+
+
+def test_location_granted_is_single_use_and_hides_coordinates(replay):
+    c = LocationConsent()
+    c.lookup()
+    assert c.grant(*TAMPINES)
+    out = c.lookup()
+    assert out == {**out, "status": "ok", "nearest_town": "Tampines", "region": "east"}
+    assert "1.34" not in json.dumps(out) and "103.9" not in json.dumps(out)
+    assert c.lookup()["status"] == "consent_required"  # next lookup asks again
+
+
+def test_location_denied(replay):
+    c = LocationConsent()
+    c.lookup()
+    assert c.deny()
+    assert c.lookup()["status"] == "denied"
+    assert c.grant(*TAMPINES) is False and c.lookup()["status"] == "consent_required"
+
+
+def test_location_outside_singapore_not_resolved(replay):
+    assert resolve_location(51.5, -0.12)["status"] == "unavailable"
+
+
+def test_location_rejects_non_finite_coordinates():
+    c = LocationConsent()
+    c.lookup()
+    with pytest.raises(ValueError):
+        c.grant(float("nan"), 103.8)
+
+
+def test_web_location_endpoint_requires_pending_request(replay):
+    import web_app
+    sid = "test-session"
+    assert web_app.location_decision(sid, {"decision": "allow", "latitude": 1.35, "longitude": 103.95})["ok"] is False
+    with web_app.SESSIONS_LOCK:
+        sess = web_app.get_session(sid)
+    sess["consent"].lookup()
+    assert web_app.location_decision(sid, {"decision": "allow", "latitude": 1.35, "longitude": 103.95})["ok"] is True
+    assert sess["consent"].lookup()["status"] == "ok"
