@@ -1,0 +1,130 @@
+{
+ "code": 0,
+ "data": {
+  "records": [
+   {
+    "date": "2026-11-12",
+    "updatedTimestamp": "2019-09-21T11:30:00+08:00",
+    "general": {
+     "forecast": {
+      "code": "HZ",
+      "text": "Hazy"
+     },
+     "relativeHumidity": {
+      "low": 55,
+      "high": 90,
+      "unit": "Percentage"
+     },
+     "temperature": {
+      "low": 25,
+      "high": 33,
+      "unit": "Degrees Celsius"
+     },
+     "validPeriod": {
+      "end": "2026-11-13T12:00:00+08:00",
+      "start": "2026-11-12T12:00:00+08:00",
+      "text": "12 PM 21 Sep to 12 PM 22 Sep"
+     },
+     "wind": {
+      "direction": "SSW",
+      "speed": {
+       "high": 15,
+       "low": 5
+      }
+     }
+    },
+    "periods": [
+     {
+      "regions": {
+       "north": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "south": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "east": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "west": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "central": {
+        "code": "HZ",
+        "text": "Hazy"
+       }
+      },
+      "timePeriod": {
+       "end": "2026-11-12T18:00:00+08:00",
+       "start": "2026-11-12T12:00:00+08:00",
+       "text": "Midday to 6 pm 12 Nov"
+      }
+     },
+     {
+      "regions": {
+       "north": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "south": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "east": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "west": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "central": {
+        "code": "HZ",
+        "text": "Hazy"
+       }
+      },
+      "timePeriod": {
+       "end": "2026-11-13T06:00:00+08:00",
+       "start": "2026-11-12T18:00:00+08:00",
+       "text": "6 pm 12 Nov to 6 am 13 Nov"
+      }
+     },
+     {
+      "regions": {
+       "north": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "south": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "east": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "west": {
+        "code": "HZ",
+        "text": "Hazy"
+       },
+       "central": {
+        "code": "HZ",
+        "text": "Hazy"
+       }
+      },
+      "timePeriod": {
+       "end": "2026-11-13T12:00:00+08:00",
+       "start": "2026-11-13T06:00:00+08:00",
+       "text": "6 am to Midday 13 Nov"
+      }
+     }
+    ],
+    "timestamp": "2019-09-21T11:30:00+08:00"
+   }
+  ]
+ },
+ "errorMsg": ""
+}

@@ -1,0 +1,96 @@
+{
+  "guardrail_config_version": "sg-weather-guardrail-v3",
+  "name": "sg-weather-agent-guardrail",
+  "description": "Guardrail for the Singapore Weather Agent: blocks prompt attacks, harmful content, medical dosing advice and political blame; masks Singapore PII.",
+  "blockedInputMessaging": "Sorry, I can't help with that request. I can give you Singapore weather forecasts, haze conditions and NEA health advisories. For questions about medication, please ask a doctor or pharmacist.",
+  "blockedOutputsMessaging": "Sorry, I can't help with that request. I can give you Singapore weather forecasts, haze conditions and NEA health advisories. For questions about medication, please ask a doctor or pharmacist.",
+  "contentPolicyConfig": {
+    "filtersConfig": [
+      {
+        "type": "SEXUAL",
+        "inputStrength": "HIGH",
+        "outputStrength": "HIGH"
+      },
+      {
+        "type": "VIOLENCE",
+        "inputStrength": "HIGH",
+        "outputStrength": "HIGH"
+      },
+      {
+        "type": "HATE",
+        "inputStrength": "HIGH",
+        "outputStrength": "HIGH"
+      },
+      {
+        "type": "INSULTS",
+        "inputStrength": "HIGH",
+        "outputStrength": "HIGH"
+      },
+      {
+        "type": "MISCONDUCT",
+        "inputStrength": "HIGH",
+        "outputStrength": "HIGH"
+      },
+      {
+        "type": "PROMPT_ATTACK",
+        "inputStrength": "HIGH",
+        "outputStrength": "NONE"
+      }
+    ]
+  },
+  "topicPolicyConfig": {
+    "topicsConfig": [
+      {
+        "name": "MedicalTreatment",
+        "type": "DENY",
+        "definition": "Personalised medication or treatment instructions: naming specific drugs, doses, dosing schedules, inhaler puff counts or prescriptions for a person, or diagnosing a person's illness.",
+        "examples": [
+          "How many puffs of Ventolin should my son take because of the haze?",
+          "What dose of prednisolone should I take for my haze cough?",
+          "Do I have bronchitis from breathing the haze?",
+          "Give her 2 puffs of salbutamol every 4 hours."
+        ]
+      },
+      {
+        "name": "PoliticalBlame",
+        "type": "DENY",
+        "definition": "Opinions on which countries, governments, companies or politicians are to blame for haze, or recommendations on political actions such as sanctions.",
+        "examples": [
+          "Which country is to blame for the haze and should Singapore sanction them?",
+          "Is the Indonesian government responsible for the haze?"
+        ]
+      }
+    ]
+  },
+  "sensitiveInformationPolicyConfig": {
+    "piiEntitiesConfig": [
+      {
+        "type": "EMAIL",
+        "action": "ANONYMIZE"
+      },
+      {
+        "type": "PHONE",
+        "action": "ANONYMIZE"
+      },
+      {
+        "type": "CREDIT_DEBIT_CARD_NUMBER",
+        "action": "BLOCK"
+      }
+    ],
+    "regexesConfig": [
+      {
+        "name": "SG_NRIC_FIN",
+        "description": "Singapore NRIC/FIN number",
+        "pattern": "\\b[STFGM]\\d{7}[A-Z]\\b",
+        "action": "ANONYMIZE"
+      }
+    ]
+  },
+  "wordPolicyConfig": {
+    "managedWordListsConfig": [
+      {
+        "type": "PROFANITY"
+      }
+    ]
+  }
+}

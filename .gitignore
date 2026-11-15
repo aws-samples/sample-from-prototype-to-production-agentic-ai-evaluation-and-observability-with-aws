@@ -48,6 +48,7 @@ config
 
 # Workshop behavior contract config (not credentials)
 !01-single-agent-prototype/config/
+!06-singapore-weather-agent/config/
 !01-single-agent-prototype/config/**
 
 # Environment variables
