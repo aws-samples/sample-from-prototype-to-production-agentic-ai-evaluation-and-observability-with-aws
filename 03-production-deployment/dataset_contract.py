@@ -301,7 +301,7 @@ def predefined_example_from_record(
     example: dict[str, Any] = {
         "scenario_id": _clean_scenario_id("release-gate", source_id),
         "turns": turns,
-        "assertions": [{"text": text} for text in assertion_texts(record)],
+        "assertions": list(assertion_texts(record)),
         "metadata": {
             "source_test_case_id": source_id,
             "source_dataset_version": record.get("source_dataset_version"),
@@ -319,7 +319,7 @@ def predefined_example_from_record(
     }
     expected_tools = _expected_tool_names(record)
     if expected_tools:
-        example["expected_trajectory"] = {"toolNames": expected_tools}
+        example["expected_trajectory"] = list(expected_tools)
     return example
 
 
@@ -364,7 +364,7 @@ def simulation_example_from_record(record: Mapping[str, Any]) -> dict[str, Any]:
         },
         "input": str(record.get("input", "")),
         "max_turns": 3 if category != "multi_turn" else 5,
-        "assertions": [{"text": text} for text in assertion_texts(record)],
+        "assertions": list(assertion_texts(record)),
         "metadata": {
             "source_test_case_id": source_id,
             "source_dataset_version": record.get("source_dataset_version"),
@@ -400,7 +400,12 @@ def postdeploy_ground_truth_from_examples(
         final_turn = turns[-1] if turns else {}
         source_case = source_cases.get(str(metadata.get("source_test_case_id")))
         setup_turns = setup_turns_from_source_case(source_case)
-        expected_tools = (example.get("expected_trajectory") or {}).get("toolNames", [])
+        trajectory = example.get("expected_trajectory") or []
+        expected_tools = (
+            list(trajectory.get("toolNames", []))
+            if isinstance(trajectory, Mapping)
+            else list(trajectory)
+        )
         scenarios.append(
             {
                 "scenario_id": example["scenario_id"],
@@ -413,9 +418,10 @@ def postdeploy_ground_truth_from_examples(
                 "must_have_facts": (source_case or {}).get("must_have_facts", []),
                 "expected_trajectory": expected_tools,
                 "assertions": [
-                    item["text"]
+                    item if isinstance(item, str) else item["text"]
                     for item in example.get("assertions", [])
-                    if isinstance(item, Mapping) and item.get("text")
+                    if (isinstance(item, str) and item)
+                    or (isinstance(item, Mapping) and item.get("text"))
                 ],
                 "evaluator_ids": metadata.get("evaluator_ids")
                 or evaluator_ids_for_record(

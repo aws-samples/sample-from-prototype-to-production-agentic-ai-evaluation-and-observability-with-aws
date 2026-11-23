@@ -307,16 +307,12 @@ def promote_feedback_candidates(
         expected_tools = list(candidate.get("actual_tools") or [])
         expected_response = candidate.get("sanitized_agent_output", "")
         assertions = [
-            {
-                "text": (
-                    f"{scenario_id}: reviewed production feedback preserves "
-                    f"{candidate.get('scenario_role')} behavior."
-                )
-            }
+            f"{scenario_id}: reviewed production feedback preserves "
+            f"{candidate.get('scenario_role')} behavior."
         ]
         if expected_tools:
             assertions.append(
-                {"text": f"{scenario_id}: agent uses observed tool {', '.join(expected_tools)}."}
+                f"{scenario_id}: agent uses observed tool {', '.join(expected_tools)}."
             )
 
         example = {
@@ -340,7 +336,7 @@ def promote_feedback_candidates(
             },
         }
         if expected_tools:
-            example["expected_trajectory"] = {"toolNames": expected_tools}
+            example["expected_trajectory"] = list(expected_tools)
 
         promoted.append(
             {

@@ -116,7 +116,14 @@ class EvidenceContractTests(unittest.TestCase):
         promoted = promote_feedback_candidates(candidates)
         self.assertEqual(promoted["promoted_count"], 1)
         example = promoted["managed_dataset_examples"][0]
-        self.assertEqual(example["expected_trajectory"]["toolNames"], ["get_product_recommendations"])
+        self.assertEqual(example["expected_trajectory"], ["get_product_recommendations"])
+        self.assertEqual(
+            example["assertions"],
+            [
+                f"{example['scenario_id']}: reviewed production feedback preserves recommendation_gap behavior.",
+                f"{example['scenario_id']}: agent uses observed tool get_product_recommendations.",
+            ],
+        )
         self.assertEqual(example["metadata"]["source"], "section_04_production_feedback")
 
     def test_runtime_invocation_errors_are_not_promoted_to_dataset(self):
